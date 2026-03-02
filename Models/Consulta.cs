@@ -29,4 +29,3 @@ namespace CIVS.Models
         public DateTime ConsultaFechaRegistro { get; set; } = DateTime.UtcNow;
     }
 }
-}

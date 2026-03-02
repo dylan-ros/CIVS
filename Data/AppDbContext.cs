@@ -26,6 +26,19 @@ namespace CIVS.Data
         public DbSet<Examen> Examenes { get; set; }
         public DbSet<OrdenExamen> OrdenExamenes { get; set; }
         public DbSet<OrdenExamenDetalle> OrdenExamenDetalles { get; set; }
+        public DbSet<Inventario> Inventarios { get; set; }
+        public DbSet<InventarioMovimiento> InventarioMovimientos { get; set; }
+        public DbSet<Factura> Facturas { get; set; }
+        public DbSet<FacturaDetalle> FacturaDetalle { get; set; }
+        public DbSet<Pago> Pagos { get; set; }
+        public DbSet<MetodoPago> MetodoPagos { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Auditoria> Auditorias { get; set; }
+        public DbSet<Rol> Roles { get; set; }
+        public DbSet<UsuarioRol> UsuarioRoles { get; set; }
+
+
+
 
 
 
