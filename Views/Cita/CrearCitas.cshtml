@@ -1,0 +1,46 @@
+﻿@model CIVS.Models.Cita
+
+<h2>Nueva Cita</h2>
+
+<form asp-action="CrearCitas" method="post">
+    <div class="mb-3">
+        <label class="form-label">Paciente</label>
+        <select asp-for="PacienteId" class="form-select" asp-items="ViewBag.Pacientes">
+            <option value="">-- Seleccionar --</option>
+        </select>
+        <span asp-validation-for="PacienteId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Médico</label>
+        <select asp-for="MedicoId" class="form-select" asp-items="ViewBag.Medicos">
+            <option value="">-- Seleccionar --</option>
+        </select>
+        <span asp-validation-for="MedicoId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CitaFechaInicio" class="form-label"></label>
+        <input asp-for="CitaFechaInicio" type="datetime-local" class="form-control" />
+        <span asp-validation-for="CitaFechaInicio" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CitaFechafin" class="form-label"></label>
+        <input asp-for="CitaFechafin" type="datetime-local" class="form-control" />
+        <span asp-validation-for="CitaFechafin" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CitaMotivo" class="form-label"></label>
+        <input asp-for="CitaMotivo" class="form-control" />
+        <span asp-validation-for="CitaMotivo" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

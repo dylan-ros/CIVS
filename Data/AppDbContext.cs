@@ -17,7 +17,7 @@ namespace CIVS.Data
         public DbSet<Medico> Medicos { get; set; }
         public DbSet<HorarioMedico> HorarioMedicos { get; set; }
         public DbSet<Cita> Citas { get; set; }
-        public DbSet<Consulta> Consultas { get; set; }
+        public DbSet<Consulta> Consultas { get; set; } 
         public DbSet<Diagnostico> Diagnosticos { get; set; }
         public DbSet<ConsultaDiagnostico> ConsultaDiagnosticos { get; set; }
         public DbSet<Receta> Recetas { get; set; }

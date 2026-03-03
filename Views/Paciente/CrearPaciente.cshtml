@@ -1,0 +1,72 @@
+﻿@model CIVS.Models.Paciente
+
+<h2>Crear Paciente</h2>
+
+<!-- VALIDACION DE CREACION DE PACIENTE -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+<!---------------------------------------->
+
+
+<form asp-action="CrearPaciente" method="post" class="mt-3">
+    <div class="row g-3">
+
+        <div class="col-md-4">
+            <label asp-for="PacienteDPI" class="form-label">DPI</label>
+            <input asp-for="PacienteDPI" class="form-control" />
+            <span asp-validation-for="PacienteDPI" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="PacienteNombres" class="form-label">Nombres</label>
+            <input asp-for="PacienteNombres" class="form-control" />
+            <span asp-validation-for="PacienteNombres" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="PacienteApellido" class="form-label">Apellidos</label>
+            <input asp-for="PacienteApellido" class="form-control" />
+            <span asp-validation-for="PacienteApellido" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="PacienteTelefono" class="form-label">Teléfono</label>
+            <input asp-for="PacienteTelefono" class="form-control" />
+            <span asp-validation-for="PacienteTelefono" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="PacienteNacimiento" class="form-label">Fecha de nacimiento</label>
+            <input asp-for="PacienteNacimiento" type="date" class="form-control" />
+            <span asp-validation-for="PacienteNacimiento" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="PacienteEstadoCivil" class="form-label">Estado civil</label>
+            <input asp-for="PacienteEstadoCivil" class="form-control" />
+            <span asp-validation-for="PacienteEstadoCivil" class="text-danger"></span>
+        </div>
+
+        <div class="col-12">
+            <div class="form-check">
+                <input asp-for="PacienteEstado" class="form-check-input" />
+                <label asp-for="PacienteEstado" class="form-check-label">Activo</label>
+            </div>
+        </div>
+
+        <div class="col-12 mt-2">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
