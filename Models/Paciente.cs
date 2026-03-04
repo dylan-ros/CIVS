@@ -21,6 +21,12 @@ namespace CIVS.Models
         [Required, StringLength(18)]
         public string PacienteTelefono {  get; set; } = string.Empty;
 
+        [Required, EmailAddress, StringLength(120)]
+        public string PacienteCorreo { get; set; } = string.Empty;
+
+        [Required, StringLength(200)]
+        public string PacienteDireccion { get; set; } = string.Empty;
+
         [Required]
         public DateTime PacienteNacimiento { get; set; }
 
