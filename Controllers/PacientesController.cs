@@ -14,23 +14,40 @@ namespace CIVS.Controllers
             _context = context;
         }
 
-        // GET: Paciente
-        public async Task<IActionResult> Index()
+        // GET: Paciente (Consulta de pacientes + buscador)
+        public async Task<IActionResult> Index(string? q)
         {
-            var pacientes = await _context.Pacientes
+            var query = _context.Pacientes.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                q = q.Trim();
+
+                query = query.Where(p =>
+                    p.PacienteDPI.Contains(q) ||
+                    p.PacienteNombres.Contains(q) ||
+                    p.PacienteApellido.Contains(q) ||
+                    (p.PacienteNombres + " " + p.PacienteApellido).Contains(q) || 
+                    p.PacienteTelefono.Contains(q) ||
+                    (p.PacienteCorreo != null && p.PacienteCorreo.Contains(q)) ||
+                    (p.PacienteDireccion != null && p.PacienteDireccion.Contains(q)));
+            }
+
+            var pacientes = await query
                 .OrderByDescending(p => p.PacienteFechaRegistro)
                 .ToListAsync();
 
-            return View(pacientes); // Views/Paciente/Index.cshtml RUTA
+            ViewBag.Q = q;
+            return View(pacientes); // Views/Paciente/Index.cshtml
         }
 
         // GET: Paciente/CrearPaciente
         public IActionResult CrearPaciente()
         {
-            return View(); // Views/Paciente/CrearPaciente.cshtml RUTA
+            return View(); // Views/Paciente/CrearPaciente.cshtml
         }
 
-        // POST: Paciente/CrearPaciente PARA CREAR PACIENTE 
+        // POST: Paciente/CrearPaciente (crear)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearPaciente(Paciente paciente)
@@ -38,11 +55,12 @@ namespace CIVS.Controllers
             if (!ModelState.IsValid)
                 return View(paciente);
 
+            paciente.PacienteEstado = true;
+
             _context.Pacientes.Add(paciente);
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Paciente creado exitosamente.";
-
             return RedirectToAction(nameof(CrearPaciente));
         }
     }

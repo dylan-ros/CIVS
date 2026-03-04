@@ -27,7 +27,7 @@
                 <div class="collapse navbar-collapse" id="mainNavbar">
                     <!-- Left nav -->
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">                 
-                        <!-- FRONT OFFICE Module -->
+                        <!-- FRONT OFFICE MODULO -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle fw-semibold" href="#" id="frontOfficeDropdown"
                                role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -35,7 +35,7 @@
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="frontOfficeDropdown">
                                 <li>
-                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                    <a class="dropdown-item" asp-controller="Paciente" asp-action="Index">
                                         Consulta de pacientes
                                     </a>
                                 </li>
@@ -60,6 +60,112 @@
                                 </li>
                             </ul>
                         </li>
+
+                        <!-- FARMACIA MODULO -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle fw-semibold" href="#" id="frontOfficeDropdown"
+                               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Farmacia 
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="frontOfficeDropdown">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Consulta de medicamentos e insumos
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Crear nuevo medicamento
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Crear nuevo insumo
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- LABORATORIO MODULO-->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle fw-semibold" href="#" id="frontOfficeDropdown"
+                               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Laboratorio 
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="frontOfficeDropdown">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Consulta de laboratorios
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Consulta de exámenes 
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Crear nueva orden de laboratorio 
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Crear nuevos exámenes
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Crear Receta
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!--CORTE DE CAJA MODULO-->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle fw-semibold" href="#" id="frontOfficeDropdown"
+                               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Corte de Caja
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="frontOfficeDropdown">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Reporte financiero
+                                    </a>
+                                </li>                             
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Crear nueva factura
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!--ADMINISTRACION MODULO-->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle fw-semibold" href="#" id="frontOfficeDropdown"
+                               role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Administración
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="frontOfficeDropdown">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Usuarios
+                                    </a>
+                                </li>  
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                                        Bitácora de acciones 
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+
+
                     </ul>
 
                     <!-- Right nav -->

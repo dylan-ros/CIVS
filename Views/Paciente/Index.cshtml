@@ -1,0 +1,107 @@
+﻿@model List<CIVS.Models.Paciente>
+
+@{
+    ViewData["Title"] = "Consulta de pacientes";
+    var q = ViewBag.Q as string;
+}
+
+<div class="bg-white border rounded-4 shadow-sm p-4">
+
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill" style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                    Front Office
+                </span>
+                <span class="text-muted small">Pacientes</span>
+            </div>
+
+            <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
+                Consulta de pacientes
+            </h2>
+
+            <p class="text-muted mb-0">
+                Buscá por DPI, nombre, apellido, teléfono, correo o dirección.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-action="CrearPaciente" class="btn btn-primary">+ Nuevo paciente</a>
+        </div>
+    </div>
+
+    <hr class="my-3" />
+
+    <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-12 col-md-6">
+            <label class="form-label">Buscar</label>
+            <input name="q" value="@q" class="form-control" placeholder="Ej. 1234567890101, Juan, +502..." />
+        </div>
+
+        <div class="col-12 col-md-auto">
+            <button type="submit" class="btn btn-outline-primary w-100">Buscar</button>
+        </div>
+
+        <div class="col-12 col-md-auto">
+            <a asp-action="Index" class="btn btn-outline-secondary w-100">Limpiar</a>
+        </div>
+    </form>
+
+
+
+
+
+
+    @{
+        var a = ViewBag.Q as string;
+    }
+
+    @if (string.IsNullOrWhiteSpace(a))
+    {
+        <div class="alert alert-light border mb-0">
+            Sin búsquedas...
+        </div>
+    }
+    else
+    {
+        if (Model == null || !Model.Any())
+        {
+            <div class="alert alert-light border mb-0">
+                No se encontraron pacientes para: <strong>@a</strong>.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>DPI</th>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Correo</th>
+                            <th>Dirección</th>
+                            <th>Fecha nac.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@p.PacienteDPI</td>
+                                <td>@p.PacienteNombres @p.PacienteApellido</td>
+                                <td>@p.PacienteTelefono</td>
+                                <td>@(string.IsNullOrWhiteSpace(p.PacienteCorreo) ? "-" : p.PacienteCorreo)</td>
+                                <td class="text-muted">@((string.IsNullOrWhiteSpace(p.PacienteDireccion) ? "-" : p.PacienteDireccion))</td>
+                                <td>@p.PacienteNacimiento.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+
+
+
+</div>
