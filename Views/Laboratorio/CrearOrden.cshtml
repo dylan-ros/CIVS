@@ -1,0 +1,106 @@
+﻿@model CIVS.Models.OrdenExamen
+
+@{
+    ViewData["Title"] = "Crear orden de examen";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
+<form asp-action="CrearOrden" asp-controller="Laboratorio" method="post" class="mt-3">
+    <div class="bg-white border rounded-4 shadow-sm p-4">
+
+        <!-- Encabezado -->
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge rounded-pill"
+                          style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                        Laboratorio
+                    </span>
+                    <span class="text-muted small">Órdenes de Examen</span>
+                </div>
+                <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
+                    Crear nueva orden de examen
+                </h2>
+            </div>
+        </div>
+
+        <hr class="my-3" />
+
+        <!-- Datos de la orden -->
+        <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h3 class="h6 fw-semibold mb-0">Datos de la orden</h3>
+                <span class="text-muted small">Campos obligatorios</span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="ConsultaId" class="form-label">Consulta (Paciente)</label>
+                    <select asp-for="ConsultaId"
+                            asp-items="ViewBag.Consultas"
+                            class="form-select">
+                        <option value="">-- Seleccionar consulta --</option>
+                    </select>
+                    <span asp-validation-for="ConsultaId" class="text-danger small"></span>
+                    <div class="form-text">Seleccioná la consulta médica a la que pertenece esta orden.</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="ExamenId" class="form-label">Tipo de examen</label>
+                    <select asp-for="ExamenId"
+                            asp-items="ViewBag.Examenes"
+                            class="form-select">
+                        <option value="">-- Seleccionar examen --</option>
+                    </select>
+                    <span asp-validation-for="ExamenId" class="text-danger small"></span>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="ResultadoTexto" class="form-label">
+                        Observaciones iniciales
+                        <span class="text-muted fw-normal">(opcional)</span>
+                    </label>
+                    <textarea asp-for="ResultadoTexto" class="form-control" rows="3"
+                              placeholder="Indicaciones especiales, ayuno requerido, etc."></textarea>
+                    <span asp-validation-for="ResultadoTexto" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado inicial -->
+        <div class="alert alert-light border d-flex align-items-center gap-2 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#1e7e34" viewBox="0 0 16 16">
+                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
+            </svg>
+            <span class="small">La orden se creará con estado <strong>Solicitado</strong>. Podrás cambiar el estado desde el detalle de la orden.</span>
+        </div>
+
+        <hr class="my-4" />
+
+        <!-- Botones -->
+        <div class="d-flex gap-2 justify-content-end">
+            <button type="submit" class="btn btn-primary">Crear orden</button>
+            <a asp-controller="Laboratorio" asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        setTimeout(function () {
+            const alertEl = document.querySelector('.alert.alert-success');
+            if (alertEl) bootstrap.Alert.getOrCreateInstance(alertEl).close();
+        }, 3000);
+    </script>
+}
