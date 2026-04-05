@@ -20,6 +20,6 @@ namespace CIVS.Models
         public string? RecetaObservaciones { get; set; }
         public bool RecetaEstado { get; set; } = true;
 
-
+        public ICollection<RecetaDetalle> RecetaDetalles { get; set; } = new List<RecetaDetalle>();
     }
 }

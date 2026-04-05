@@ -1,0 +1,331 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Iniciar sesión";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CIVS — Iniciar sesión</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            background: #f4f7f5;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        /* ── Panel izquierdo ── */
+        .panel-izq {
+            flex: 1;
+            background: linear-gradient(160deg, #1a5c38 0%, #2d8653 60%, #3cb371 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 60px 56px;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .panel-izq::before {
+                content: '';
+                position: absolute;
+                top: -80px;
+                right: -80px;
+                width: 340px;
+                height: 340px;
+                border-radius: 50%;
+                background: rgba(255,255,255,.06);
+            }
+
+            .panel-izq::after {
+                content: '';
+                position: absolute;
+                bottom: -60px;
+                left: -60px;
+                width: 260px;
+                height: 260px;
+                border-radius: 50%;
+                background: rgba(255,255,255,.04);
+            }
+
+        .logo-marca {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 56px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-sigla {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            background: rgba(255,255,255,.15);
+            border: 1.5px solid rgba(255,255,255,.3);
+            border-radius: 12px;
+            padding: 6px 16px;
+            letter-spacing: 3px;
+        }
+
+        .logo-texto span:first-child {
+            font-size: .7rem;
+            font-weight: 500;
+            color: rgba(255,255,255,.65);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            display: block;
+        }
+
+        .logo-texto span:last-child {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .panel-titulo {
+            font-size: 2.6rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-sub {
+            font-size: .95rem;
+            color: rgba(255,255,255,.72);
+            font-weight: 300;
+            line-height: 1.7;
+            max-width: 340px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .modulo-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 50px;
+            padding: 6px 16px;
+            color: rgba(255,255,255,.88);
+            font-size: .82rem;
+            width: fit-content;
+            margin-top: 10px;
+        }
+
+            .modulo-chip .dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: #3cb371;
+            }
+
+        /* ── Panel derecho ── */
+        .panel-der {
+            width: 460px;
+            min-height: 100vh;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px 48px;
+            box-shadow: -8px 0 40px rgba(0,0,0,.08);
+            animation: slideIn .4s ease both;
+        }
+
+        @@keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .form-label {
+            font-size: .78rem;
+            font-weight: 700;
+            color: #1a2e22;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .form-control {
+            border: 1.5px solid #d4e4da;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: .92rem;
+            background: #f4f7f5;
+            transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+
+            .form-control:focus {
+                border-color: #2d8653;
+                background: #fff;
+                box-shadow: 0 0 0 3px rgba(45,134,83,.12);
+                outline: none;
+            }
+
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #1a5c38, #2d8653);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 700;
+            font-size: .95rem;
+            cursor: pointer;
+            transition: opacity .2s;
+            margin-top: 8px;
+        }
+
+            .btn-login:hover {
+                opacity: .9;
+            }
+
+        .alerta-error {
+            background: #fff5f5;
+            border: 1.5px solid #fcc;
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #c53030;
+            font-size: .85rem;
+            margin-bottom: 20px;
+        }
+
+        .toggle-pass {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b8f7a;
+            cursor: pointer;
+        }
+
+        @@media (max-width: 900px) {
+            .panel-izq {
+                display: none;
+            }
+
+            .panel-der {
+                width: 100%;
+                padding: 48px 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Panel izquierdo -->
+    <div class="panel-izq d-none d-md-flex flex-column">
+        <div class="logo-marca">
+            <span class="logo-sigla">CIVS</span>
+            <div class="logo-texto">
+                <span>Sistema ERP</span>
+                <span>Clínica Integral<br>Vida Sana</span>
+            </div>
+        </div>
+        <h2 class="panel-titulo">Gestión clínica<br>en un solo lugar.</h2>
+    </div>
+
+    <!-- Panel derecho -->
+    <div class="panel-der">
+        <h1 style="font-size:1.9rem;font-weight:700;color:#1a2e22;margin-bottom:6px;">
+            Bienvenido
+        </h1>
+        <p style="color:#6b8f7a;font-size:.88rem;margin-bottom:32px;">
+            Iniciá sesión para acceder al sistema CIVS
+        </p>
+
+        @if (!string.IsNullOrEmpty(ViewBag.Error as string))
+        {
+            <div class="alerta-error">
+                ⚠️ @ViewBag.Error
+            </div>
+        }
+
+        <form asp-action="Login" asp-controller="Auth" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label class="form-label">Usuario o correo</label>
+                <input type="text" name="usernameOrEmail"
+                       class="form-control"
+                       placeholder="usuario o correo@civs.com"
+                       autocomplete="username" autofocus required />
+            </div>
+
+            <div class="mb-3 position-relative">
+                <label class="form-label">Contraseña</label>
+                <div class="position-relative">
+                    <input type="password" name="password" id="inputPass"
+                           class="form-control pe-5"
+                           placeholder="••••••••"
+                           autocomplete="current-password" required />
+                    <button type="button" class="toggle-pass"
+                            onclick="togglePass()">
+                        <svg id="iconoOjo" xmlns="http://www.w3.org/2000/svg"
+                             width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173
+                                     8a13.133 13.133 0 011.66-2.043C4.12 4.668 5.88 3.5 8
+                                     3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0
+                                     0114.828 8c-.058.087-.122.183-.195.288-.335.48-.83
+                                     1.12-1.465 1.755C11.879 11.332 10.119 12.5 8
+                                     12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134
+                                     0 011.172 8z" />
+                            <path d="M8 5.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="form-check mb-0">
+                    <input type="checkbox" name="rememberMe"
+                           class="form-check-input" id="chkRecordar" />
+                    <label class="form-check-label small text-muted"
+                           for="chkRecordar">
+                        Mantener sesión (7 días)
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login">Iniciar sesión</button>
+        </form>
+
+        <p class="text-center text-muted mt-4 mb-0"
+           style="font-size:.75rem;">
+            &copy; 2026 — CIVS · Clínica Integral Vida Sana, S.A.
+        </p>
+    </div>
+
+    <script>
+        function togglePass() {
+            const input = document.getElementById('inputPass');
+            input.type  = input.type === 'password' ? 'text' : 'password';
+        }
+    </script>
+</body>
+</html>

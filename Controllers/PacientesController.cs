@@ -1,10 +1,12 @@
 ﻿using CIVS.Data;
 using CIVS.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CIVS.Controllers
 {
+    [Authorize]
     public class PacienteController : Controller
     {
         private readonly AppDbContext _context;

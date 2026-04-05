@@ -1,0 +1,65 @@
+﻿@model CIVS.Models.Factura
+
+@{
+    ViewData["Title"] = "Consulta completada";
+}
+
+<div class="row g-3 mt-1 justify-content-center">
+    <div class="col-lg-6">
+        <div class="bg-white border rounded-4 shadow-sm p-5 text-center">
+
+            <!-- Ícono de éxito -->
+            <div style="width:80px;height:80px;border-radius:50%;
+                        background:linear-gradient(135deg,#e8f5ee,#d1fae5);
+                        display:flex;align-items:center;justify-content:center;
+                        margin:0 auto 20px;font-size:2.5rem;">
+                ✅
+            </div>
+
+            <h2 class="fw-bold mb-2" style="color:#1a5c38;">¡Consulta completada!</h2>
+            <p class="text-muted mb-4">
+                El pago fue registrado exitosamente.
+            </p>
+
+            <!-- Resumen -->
+            <div class="border rounded-3 p-3 mb-4 text-start"
+                 style="background:#f8fdfb;">
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">Factura</span>
+                    <span class="fw-semibold">@Model.FacturaNumero</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">Paciente</span>
+                    <span class="fw-semibold">
+                        @Model.Paciente.PacienteNombres @Model.Paciente.PacienteApellido
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">Médico</span>
+                    <span class="fw-semibold">
+                        Dr. @Model.Cita?.Medico?.MedicoNombres
+                        @Model.Cita?.Medico?.MedicoApellidos
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">Total pagado</span>
+                    <span class="fw-bold fs-6" style="color:#1a5c38;">
+                        Q @Model.FacturaTotal.ToString("0.00")
+                    </span>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-center">
+                <a asp-controller="Cita" asp-action="Index"
+                   class="btn btn-outline-success rounded-pill px-4">
+                    Ver citas
+                </a>
+                <a asp-controller="Home" asp-action="Index"
+                   class="btn btn-primary rounded-pill px-4">
+                    Ir al inicio
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>

@@ -1,11 +1,13 @@
 ﻿
 using CIVS.Data;
 using CIVS.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CIVS.Controllers
 {
+    [Authorize(Roles = "Administrador,Recepcionista,Cajero,Laboratorista")]
     // Se crea el controllador que hereda de la clase Controller de ASP.NET
     public class MedicamentoController : Controller
     {

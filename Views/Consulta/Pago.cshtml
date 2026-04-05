@@ -1,0 +1,94 @@
+﻿@model CIVS.Models.Factura
+
+@{
+    ViewData["Title"] = "Cobro de consulta";
+}
+
+<div class="row g-3 mt-1 justify-content-center">
+    <div class="col-lg-7">
+
+        <div class="bg-white border rounded-4 shadow-sm p-4">
+
+            <!-- Encabezado -->
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge rounded-pill"
+                      style="background:#e9f7ef;color:#1e7e34;border:1px solid #cfeedd;">
+                    Caja
+                </span>
+                <span class="text-muted small">Cobro</span>
+            </div>
+            <h2 class="fw-semibold mb-1" style="color:#1a5c38;font-size:1.2rem;">
+                Factura @Model.FacturaNumero
+            </h2>
+            <p class="text-muted small mb-4">
+                @Model.FacturaFecha.ToString("dd/MM/yyyy HH:mm")
+            </p>
+
+            <!-- Paciente -->
+            <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3"
+                 style="background:#f8fdfb;border:1px solid #d4e4da;">
+                <div style="width:44px;height:44px;border-radius:50%;
+                            background:linear-gradient(135deg,#e8f5ee,#d1fae5);
+                            display:flex;align-items:center;justify-content:center;
+                            font-weight:700;color:#1a5c38;font-size:.9rem;flex-shrink:0;">
+                    @Model.Paciente.PacienteNombres[0]@Model.Paciente.PacienteApellido[0]
+                </div>
+                <div>
+                    <p class="fw-bold mb-0 small" style="color:#1a2e22;">
+                        @Model.Paciente.PacienteNombres @Model.Paciente.PacienteApellido
+                    </p>
+                    <p class="text-muted mb-0" style="font-size:.72rem;">
+                        DPI: @Model.Paciente.PacienteDPI
+                    </p>
+                </div>
+            </div>
+
+            <!-- Detalle de servicios -->
+            <h3 class="h6 fw-semibold mb-3" style="color:#1a5c38;">Detalle de servicios</h3>
+            <div class="table-responsive mb-4">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th class="text-end">Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Model.Detalles)
+                        {
+                            <tr>
+                                <td class="small">@d.DetalleDescripcion</td>
+                                <td class="text-end small fw-semibold">
+                                    Q @d.DetalleTotalLinea.ToString("0.00")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total -->
+            <div class="d-flex justify-content-between align-items-center
+                        rounded-3 px-4 py-3 mb-4"
+                 style="background:linear-gradient(135deg,#1a5c38,#2d8653);">
+                <span class="fw-bold text-white fs-6">TOTAL A PAGAR</span>
+                <span class="fw-bold text-white fs-4">
+                    Q @Model.FacturaTotal.ToString("0.00")
+                </span>
+            </div>
+
+            <!-- Botón de pago -->
+            <form asp-action="RegistrarPago" asp-controller="Consulta" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="FacturaId" value="@Model.FacturaId" />
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success btn-lg"
+                            onclick="return confirm('¿Confirmar que el paciente ya pagó?')">
+                        ✅ Ya pagó — Confirmar pago
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>

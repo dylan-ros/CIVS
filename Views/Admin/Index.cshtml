@@ -1,0 +1,71 @@
+﻿@{
+    ViewData["Title"] = "Administración";
+}
+
+<div class="bg-white border rounded-4 shadow-sm p-4 mt-3">
+
+    <!-- Encabezado -->
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill"
+                      style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                    Administración
+                </span>
+                <span class="text-muted small">Panel principal</span>
+            </div>
+            <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
+                Panel de administración
+            </h2>
+            <p class="text-muted mb-0">
+                Gestión de usuarios, roles y bitácora del sistema CIVS.
+            </p>
+        </div>
+    </div>
+
+    <hr class="my-3" />
+
+    <!-- Tarjetas resumen -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 text-center">
+                <p class="text-muted small mb-1">Total usuarios</p>
+                <p class="fw-bold fs-4 mb-0" style="color:#1e7e34;">@ViewBag.TotalUsuarios</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 text-center">
+                <p class="text-muted small mb-1">Usuarios activos</p>
+                <p class="fw-bold fs-4 mb-0 text-success">@ViewBag.TotalActivos</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 text-center">
+                <p class="text-muted small mb-1">Roles registrados</p>
+                <p class="fw-bold fs-4 mb-0">@ViewBag.TotalRoles</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 text-center">
+                <p class="text-muted small mb-1">Registros de auditoría</p>
+                <p class="fw-bold fs-4 mb-0">@ViewBag.TotalAuditorias</p>
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-3" />
+
+    <!-- Accesos rápidos -->
+    <h3 class="h6 fw-semibold mb-3">Accesos rápidos</h3>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="Usuarios" class="btn btn-outline-primary">
+            Ver usuarios
+        </a>
+        <a asp-action="CrearUsuario" class="btn btn-primary">
+            + Nuevo usuario
+        </a>
+        <a asp-action="Auditoria" class="btn btn-outline-secondary">
+            Bitácora de auditoría
+        </a>
+    </div>
+</div>
