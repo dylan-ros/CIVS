@@ -15,6 +15,7 @@ namespace CIVS.Models
 
         [ForeignKey(nameof(EspecialidadId))]
         public Especialidad? Especialidad { get; set; }
+        public int? UsuarioId { get; set; }
 
         [Required, StringLength(50)]
         public string MedicoNombres { get; set; } = string.Empty;

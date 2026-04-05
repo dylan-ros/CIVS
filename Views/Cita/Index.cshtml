@@ -1,0 +1,287 @@
+﻿@model List<CIVS.Models.Cita>
+
+@{
+    ViewData["Title"] = "Consulta de citas";
+    var q = ViewBag.Q as string;
+    var estado = ViewBag.Estado as string;
+    bool esMedico = ViewBag.EsMedico == true;
+}
+
+@if (TempData["Success"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
+<div class="bg-white border rounded-4 shadow-sm p-4">
+
+    <!-- Encabezado -->
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill"
+                      style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                    @(esMedico ? "Mis citas" : "Front Office")
+                </span>
+                <span class="text-muted small">Citas</span>
+            </div>
+            <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
+                @(esMedico ? "Mis citas del día" : "Consulta de citas")
+            </h2>
+            <p class="text-muted mb-0">
+                @(esMedico
+                                ? "Hacé clic en 'Atender' cuando llegue el horario de tu cita."
+                                : "Buscá por paciente, DPI, médico o motivo.")
+            </p>
+        </div>
+        @if (!esMedico)
+        {
+            <a asp-action="CrearCitas" class="btn btn-primary">+ Nueva cita</a>
+        }
+    </div>
+
+    <hr class="my-3" />
+
+    <!-- Buscador — solo para no médicos -->
+    @if (!esMedico)
+    {
+        <form method="get" class="row g-2 align-items-end mb-3">
+            <div class="col-12 col-md-5">
+                <label class="form-label">Buscar</label>
+                <input name="q" value="@q" class="form-control"
+                       placeholder="Ej. Juan García, 1234567890101, Dr. López..." />
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="">Todos los estados</option>
+                    <option value="programada" selected="@(estado == "programada")">Programada</option>
+                    <option value="confirmada" selected="@(estado == "confirmada")">Confirmada</option>
+                    <option value="cancelada" selected="@(estado == "cancelada")">Cancelada</option>
+                    <option value="atendida" selected="@(estado == "atendida")">Atendida</option>
+                    <option value="noAsistio" selected="@(estado == "noAsistio")">No asistió</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-auto">
+                <button type="submit" class="btn btn-outline-primary w-100">Buscar</button>
+            </div>
+            <div class="col-12 col-md-auto">
+                <a asp-action="Index" class="btn btn-outline-secondary w-100">Limpiar</a>
+            </div>
+        </form>
+    }
+
+    <!-- Resultados -->
+    @if (string.IsNullOrWhiteSpace(q) && string.IsNullOrWhiteSpace(estado) && !esMedico)
+    {
+        <div class="alert alert-light border mb-0">
+            Ingresá un término de búsqueda o seleccioná un estado para consultar citas.
+        </div>
+    }
+    else if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-light border mb-0">
+            @(esMedico ? "No tenés citas agendadas." : "No se encontraron citas con los filtros aplicados.")
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Paciente</th>
+                        @if (!esMedico)
+                        {
+                            <th>Médico</th>
+                        }
+                        <th>Fecha</th>
+                        <th>Horario</th>
+                        <th>Motivo</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        @* Para médicos: calcular si está en horario *@
+                        var ahoraLocal = DateTime.UtcNow.AddHours(-6);
+                        var margenAntes = c.CitaFechaInicio.AddMinutes(-10);
+                        var margenDespues = c.CitaFechafin.AddMinutes(30);
+                        var enHorario = ahoraLocal >= margenAntes && ahoraLocal <= margenDespues;
+
+                        <tr>
+                            <td>
+                                <span class="fw-semibold">
+                                    @c.Paciente!.PacienteNombres @c.Paciente.PacienteApellido
+                                </span>
+                                <br />
+                                <span class="text-muted small">@c.Paciente.PacienteDPI</span>
+                            </td>
+                            @if (!esMedico)
+                            {
+                                <td>Dr. @c.Medico!.MedicoNombres @c.Medico.MedicoApellidos</td>
+                            }
+                        <td>@c.CitaFechaInicio.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            <span class="fw-semibold">
+                                @c.CitaFechaInicio.ToString("HH:mm")
+                            </span>
+                            <span class="text-muted small"> — @c.CitaFechafin.ToString("HH:mm")</span>
+                        </td>
+                        <td class="text-muted small">
+                            @(c.CitaMotivo.Length > 50
+                                                    ? c.CitaMotivo[..50] + "..."
+                                                    : c.CitaMotivo)
+                    </td>
+                    <td>
+                        @switch (c.EstadoCita)
+                                {
+                                    case CIVS.Models.EstadoCita.programada:
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Programada</span>
+                                        break;
+                                    case CIVS.Models.EstadoCita.confirmada:
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">Confirmada</span>
+                                        break;
+                                    case CIVS.Models.EstadoCita.cancelada:
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Cancelada</span>
+                                        break;
+                                    case CIVS.Models.EstadoCita.atendida:
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Atendida</span>
+                                        break;
+                                    case CIVS.Models.EstadoCita.noAsistio:
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">No asistió</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+
+                                    @if (esMedico)
+                                    {
+                                        @* Vista del médico: botón Atender según horario *@
+                                        @if (c.EstadoCita == CIVS.Models.EstadoCita.atendida)
+                                        {
+                                            <a asp-controller="Consulta"
+                                               asp-action="IniciarConsulta"
+                                               asp-route-citaId="@c.CitaId"
+                                               class="btn btn-sm btn-outline-success">
+                                                Ver consulta
+                                            </a>
+                                        }
+                                        else if (c.EstadoCita == CIVS.Models.EstadoCita.programada ||
+                                        c.EstadoCita == CIVS.Models.EstadoCita.confirmada)
+                                        {
+                                            @if (enHorario)
+                                            {
+                                                <a asp-controller="Consulta"
+                                                   asp-action="IniciarConsulta"
+                                                   asp-route-citaId="@c.CitaId"
+                                                   class="btn btn-sm btn-success">
+                                                    🩺 Atender
+                                                </a>
+                                            }
+                                            else if (ahoraLocal < margenAntes)
+                                            {
+                                                <span class="text-muted small">
+                                                    Disponible a las
+                                                    @c.CitaFechaInicio.ToString("HH:mm")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">Horario finalizado</span>
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @* Vista de recepcionista/admin *@
+
+                                        @if (c.EstadoCita == CIVS.Models.EstadoCita.programada)
+                                        {
+                                            <form asp-action="CambiarEstado" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@c.CitaId" />
+                                                <input type="hidden" name="estado" value="2" />
+                                                <button type="submit" class="btn btn-sm btn-outline-info">
+                                                    Confirmar
+                                                </button>
+                                            </form>
+                                            <form asp-action="CambiarEstado" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@c.CitaId" />
+                                                <input type="hidden" name="estado" value="3" />
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                        onclick="return confirm('¿Cancelar esta cita?')">
+                                                    Cancelar
+                                                </button>
+                                            </form>
+                                        }
+
+                                        @if (c.EstadoCita == CIVS.Models.EstadoCita.confirmada)
+                                        {
+                                            <a asp-controller="Consulta"
+                                               asp-action="IniciarConsulta"
+                                               asp-route-citaId="@c.CitaId"
+                                               class="btn btn-sm btn-success">
+                                                🩺 Iniciar consulta
+                                            </a>
+                                            <form asp-action="CambiarEstado" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@c.CitaId" />
+                                                <input type="hidden" name="estado" value="5" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    No asistió
+                                                </button>
+                                            </form>
+                                        }
+
+                                        @if (c.EstadoCita == CIVS.Models.EstadoCita.atendida)
+                                        {
+                                            <a asp-controller="Consulta"
+                                               asp-action="IniciarConsulta"
+                                               asp-route-citaId="@c.CitaId"
+                                               class="btn btn-sm btn-outline-success">
+                                                Ver consulta
+                                            </a>
+                                        }
+                                    }
+
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small mb-0 mt-2">
+            @Model.Count cita(s) encontrada(s).
+        </p>
+    }
+
+</div>
+
+@section Scripts {
+    <script>
+        setTimeout(function () {
+            const alertEl = document.querySelector('.alert.alert-success, .alert.alert-danger');
+            if (alertEl) bootstrap.Alert.getOrCreateInstance(alertEl).close();
+        }, 3000);
+    </script>
+}

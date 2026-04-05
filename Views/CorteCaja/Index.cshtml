@@ -1,0 +1,177 @@
+﻿@model List<CIVS.Models.Factura>
+
+@{
+    ViewData["Title"] = "Corte de caja";
+}
+
+<div class="bg-white border rounded-4 shadow-sm p-4 mt-3">
+
+    <!-- Encabezado -->
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill"
+                      style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                    Corte de Caja
+                </span>
+                <span class="text-muted small">Reporte financiero</span>
+            </div>
+            <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
+                Corte de caja — @ViewBag.FechaDisplay
+            </h2>
+            <p class="text-muted mb-0">
+                Resumen de facturas emitidas y pagos recibidos del día.
+            </p>
+        </div>
+        <a asp-action="CrearFactura" class="btn btn-primary">+ Nueva factura</a>
+    </div>
+
+    <hr class="my-3" />
+
+    <!-- Filtro de fecha -->
+    <form method="get" class="row g-2 align-items-end mb-4">
+        <div class="col-12 col-md-3">
+            <label class="form-label">Fecha</label>
+            <input type="date" name="fecha" value="@ViewBag.Fecha" class="form-control" />
+        </div>
+        <div class="col-12 col-md-auto">
+            <button type="submit" class="btn btn-outline-primary w-100">Ver corte</button>
+        </div>
+        <div class="col-12 col-md-auto">
+            <a asp-action="Index" class="btn btn-outline-secondary w-100">Hoy</a>
+        </div>
+    </form>
+
+    <!-- Tarjetas resumen -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 text-center">
+                <p class="text-muted small mb-1">Total del día</p>
+                <p class="fw-bold fs-4 mb-0" style="color:#1e7e34;">
+                    Q @ViewBag.TotalDia.ToString("0.00")
+                </p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 text-center">
+                <p class="text-muted small mb-1">Facturas emitidas</p>
+                <p class="fw-bold fs-4 mb-0">@ViewBag.TotalFacturas</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 text-center">
+                <p class="text-muted small mb-1">Pagadas</p>
+                <p class="fw-bold fs-4 mb-0 text-success">@ViewBag.TotalPagadas</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 text-center">
+                <p class="text-muted small mb-1">Pendientes de pago</p>
+                <p class="fw-bold fs-4 mb-0 text-warning">@ViewBag.TotalEmitidas</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Totales por método de pago -->
+    @if (ViewBag.PorMetodoPago != null)
+    {
+        var metodos = ViewBag.PorMetodoPago as IEnumerable<dynamic>;
+        if (metodos != null && metodos.Any())
+        {
+            <div class="mb-4">
+                <h3 class="h6 fw-semibold mb-2">Ingresos por método de pago</h3>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var m in metodos)
+                    {
+                        <div class="border rounded-3 px-3 py-2 d-flex gap-3 align-items-center">
+                            <span class="text-muted small">@m.Metodo</span>
+                            <span class="fw-bold" style="color:#1e7e34;">
+                                Q @m.Total.ToString("0.00")
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+
+    <hr class="my-3" />
+
+    <!-- Tabla de facturas -->
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-light border mb-0">
+            No hay facturas registradas para el día <strong>@ViewBag.FechaDisplay</strong>.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>No. Factura</th>
+                        <th>Paciente</th>
+                        <th>Hora</th>
+                        <th>Método de pago</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@(f.FacturaNumero ?? $"#{f.FacturaId}")</td>
+                            <td>
+                                @f.Paciente.PacienteNombres @f.Paciente.PacienteApellido
+                            </td>
+                            <td class="text-muted small">
+                                @f.FacturaFecha.ToString("HH:mm")
+                            </td>
+                            <td>
+                                @if (f.Pagos != null && f.Pagos.Any())
+                                {
+                                    <span class="badge rounded-pill"
+                                          style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                                        @f.Pagos.First().MetodoPago.MetodoPagoNombre
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">—</span>
+                                }
+                            </td>
+                            <td class="fw-semibold">Q @f.FacturaTotal.ToString("0.00")</td>
+                            <td>
+                                @switch (f.FacturaEstado)
+                                {
+                                    case CIVS.Models.EstadoFactura.Emitida:
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Emitida</span>
+                                        break;
+                                    case CIVS.Models.EstadoFactura.Pagada:
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Pagada</span>
+                                        break;
+                                    case CIVS.Models.EstadoFactura.Anulada:
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Anulada</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="DetalleFactura" asp-route-id="@f.FacturaId"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Ver detalle
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small mb-0 mt-2">
+            @Model.Count factura(s) para el @ViewBag.FechaDisplay.
+        </p>
+    }
+
+</div>

@@ -1,11 +1,13 @@
 ﻿using CIVS.Data;
 using CIVS.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace CIVS.Controllers
 {
+    [Authorize(Roles = "Administrador,Recepcionista,Medico,Laboratorista")]
     public class LaboratorioController : Controller
     {
         private readonly AppDbContext _context;

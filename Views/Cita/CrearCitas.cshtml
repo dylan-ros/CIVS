@@ -1,46 +1,752 @@
 ﻿@model CIVS.Models.Cita
 
-<h2>Nueva Cita</h2>
+@{
+    ViewData["Title"] = "Programar cita";
+}
 
-<form asp-action="CrearCitas" method="post">
-    <div class="mb-3">
-        <label class="form-label">Paciente</label>
-        <select asp-for="PacienteId" class="form-select" asp-items="ViewBag.Pacientes">
-            <option value="">-- Seleccionar --</option>
-        </select>
-        <span asp-validation-for="PacienteId" class="text-danger"></span>
+@if (TempData["Success"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     </div>
+}
 
-    <div class="mb-3">
-        <label class="form-label">Médico</label>
-        <select asp-for="MedicoId" class="form-select" asp-items="ViewBag.Medicos">
-            <option value="">-- Seleccionar --</option>
-        </select>
-        <span asp-validation-for="MedicoId" class="text-danger"></span>
+@if (!ViewData.ModelState.IsValid)
+{
+    var errores = ViewData.ModelState.Values.SelectMany(v => v.Errors).ToList();
+    if (errores.Any())
+    {
+        <div class="alert alert-danger mt-3">
+            @foreach (var e in errores)
+            {
+                <div>@e.ErrorMessage</div>
+            }
+        </div>
+    }
+}
+
+<style>
+    #calendario {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: .82rem;
+    }
+
+    .fc .fc-toolbar {
+        padding: 0 0 12px 0;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1rem !important;
+        font-weight: 600;
+        color: #1a5c38;
+    }
+
+    .fc .fc-button {
+        background: #fff !important;
+        border: 1.5px solid #d4e4da !important;
+        color: #1a5c38 !important;
+        border-radius: 8px !important;
+        font-size: .78rem !important;
+        font-weight: 500 !important;
+        padding: 4px 12px !important;
+        box-shadow: none !important;
+        transition: all .15s !important;
+    }
+
+        .fc .fc-button:hover {
+            background: #e8f5ee !important;
+            border-color: #2d8653 !important;
+        }
+
+    .fc .fc-button-active,
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background: #1a5c38 !important;
+        border-color: #1a5c38 !important;
+        color: #fff !important;
+    }
+
+    .fc .fc-today-button {
+        background: #e8f5ee !important;
+        border-color: #2d8653 !important;
+        color: #1a5c38 !important;
+    }
+
+    .fc .fc-col-header-cell {
+        background: #f8fdfb;
+        border-bottom: 2px solid #d4e4da !important;
+        padding: 6px 0 !important;
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        color: #1a5c38;
+        font-weight: 600;
+        font-size: .8rem;
+        text-decoration: none !important;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .fc .fc-timegrid-slot-label-cushion {
+        color: #6b8f7a;
+        font-size: .75rem;
+        font-weight: 500;
+        padding-right: 10px !important;
+    }
+
+    .fc .fc-timegrid-slot {
+        height: 32px !important;
+    }
+
+    .fc .fc-timegrid-slot-minor {
+        border-top-style: dotted !important;
+        border-color: #f0f4f2 !important;
+    }
+
+    .fc td, .fc th {
+        border-color: #e8f0ec !important;
+    }
+
+    .fc .fc-timegrid-now-indicator-line {
+        border-color: #e53e3e !important;
+        border-width: 2px !important;
+    }
+
+    .fc .fc-timegrid-now-indicator-arrow {
+        border-top-color: #e53e3e !important;
+        border-bottom-color: #e53e3e !important;
+    }
+
+    .fc .fc-day-today {
+        background: #f0faf4 !important;
+    }
+
+        .fc .fc-day-today .fc-col-header-cell-cushion {
+            color: #1a5c38;
+            background: #e8f5ee;
+            border-radius: 20px;
+            padding: 2px 10px;
+        }
+
+    .fc-event {
+        border-radius: 6px !important;
+        border: none !important;
+        padding: 2px 6px !important;
+        font-size: .75rem !important;
+        font-weight: 500 !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
+    }
+
+        .fc-event .fc-event-title {
+            font-weight: 600 !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fc-event .fc-event-time {
+            font-size: .7rem !important;
+            opacity: .85;
+        }
+
+    .fc-preview-event {
+        border-left: 3px solid #4f46e5 !important;
+        background: #6366f1 !important;
+        animation: pulso .8s ease-in-out infinite alternate;
+    }
+
+    @@keyframes pulso {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: .75;
+        }
+    }
+
+    .fc .fc-highlight {
+        background: rgba(99,102,241,.15) !important;
+        border-radius: 4px;
+    }
+
+    .fc .fc-scroller {
+        overflow-y: auto !important;
+        scrollbar-width: thin;
+        scrollbar-color: #cde8d8 #f8fdfb;
+    }
+
+        .fc .fc-scroller::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .fc .fc-scroller::-webkit-scrollbar-track {
+            background: #f8fdfb;
+        }
+
+        .fc .fc-scroller::-webkit-scrollbar-thumb {
+            background: #b0d4be;
+            border-radius: 10px;
+        }
+
+    .fc .fc-timegrid-body {
+        overflow: visible !important;
+    }
+
+    .fc .fc-daygrid-day-number {
+        color: #1a5c38;
+        font-weight: 500;
+        text-decoration: none !important;
+    }
+
+    .fc .fc-daygrid-day:hover {
+        background: #f0faf4 !important;
+    }
+
+    /* ── Buscador dropdown compartido ───────────────────── */
+    .buscador-resultados {
+        position: absolute;
+        z-index: 1050;
+        background: #fff;
+        border: 1.5px solid #d4e4da;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.1);
+        max-height: 220px;
+        overflow-y: auto;
+        min-width: 100%;
+        scrollbar-width: thin;
+        scrollbar-color: #cde8d8 #f8fdfb;
+    }
+
+        .buscador-resultados::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .buscador-resultados::-webkit-scrollbar-thumb {
+            background: #b0d4be;
+            border-radius: 10px;
+        }
+
+    .resultado-item {
+        cursor: pointer;
+        border-bottom: 1px solid #f0f4f2;
+        font-size: .82rem;
+        padding: 8px 12px;
+        transition: background .1s;
+    }
+
+        .resultado-item:last-child {
+            border-bottom: none;
+        }
+
+        .resultado-item:hover {
+            background: #f0faf4;
+        }
+
+    .seleccionado-badge {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f0faf4;
+        border: 1.5px solid #cfeedd;
+        border-radius: 8px;
+        padding: 6px 12px;
+        margin-top: 6px;
+    }
+</style>
+
+<form asp-action="CrearCitas" asp-controller="Cita" method="post" class="mt-3">
+
+    <input type="hidden" name="CitaFechaInicio" id="inputInicio" value="" />
+    <input type="hidden" name="CitaFechafin" id="inputFin" value="" />
+
+    <div class="row g-3">
+
+        <!-- ── COLUMNA IZQUIERDA ── -->
+        <div class="col-lg-4">
+            <div class="bg-white border rounded-4 shadow-sm p-4">
+
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge rounded-pill"
+                          style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                        Front Office
+                    </span>
+                    <span class="text-muted small">Citas</span>
+                </div>
+                <h2 class="fw-semibold mb-4" style="color:#1e7e34; font-size:1.2rem;">
+                    Programar nueva cita
+                </h2>
+
+                <!-- Horario seleccionado -->
+                <div class="alert alert-light border mb-4" id="resumen-horario">
+                    <p class="text-muted small mb-0 text-center">
+                        Seleccioná un horario en el calendario →
+                    </p>
+                </div>
+
+                <!-- Filtro por especialidad -->
+                <div class="mb-4">
+                    <h3 class="h6 fw-semibold mb-2">Especialidad</h3>
+                    <div class="d-flex flex-column gap-1">
+                        <div class="form-check">
+                            <input class="form-check-input especialidad-radio"
+                                   type="radio" name="especialidadFiltro"
+                                   value="" id="esp-todas" checked
+                                   onchange="filtrarMedicosPorEspecialidad()" />
+                            <label class="form-check-label small" for="esp-todas">
+                                Todas las especialidades
+                            </label>
+                        </div>
+                        @foreach (var esp in ViewBag.Especialidades as List<CIVS.Models.Especialidad>)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input especialidad-radio"
+                                       type="radio" name="especialidadFiltro"
+                                       value="@esp.EspecialidadId"
+                                       id="esp-@esp.EspecialidadId"
+                                       onchange="filtrarMedicosPorEspecialidad()" />
+                                <label class="form-check-label small" for="esp-@esp.EspecialidadId">
+                                    @esp.EspecialidadNombre
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <hr class="my-3" />
+
+                <!-- ── Buscador Paciente ── -->
+                <div class="mb-3 position-relative">
+                    <label class="form-label fw-semibold small">
+                        Paciente <span class="text-danger">*</span>
+                    </label>
+                    <input type="hidden" name="PacienteId" id="PacienteId" value="" />
+                    <input type="text" id="buscarPaciente"
+                           class="form-control form-control-sm"
+                           placeholder="Buscá por nombre, apellido o DPI..."
+                           autocomplete="off" />
+                    <div id="resultadosPaciente" class="buscador-resultados" style="display:none;"></div>
+                    <div id="pacienteSeleccionado" class="seleccionado-badge" style="display:none;">
+                        <span class="small fw-semibold" style="color:#1a5c38;"
+                              id="nombrePacienteSeleccionado"></span>
+                        <button type="button" class="btn-close"
+                                style="font-size:.6rem;"
+                                onclick="limpiarPaciente()"
+                                title="Cambiar paciente"></button>
+                    </div>
+                    <span asp-validation-for="PacienteId" class="text-danger small"></span>
+                </div>
+
+                <!-- ── Buscador Médico ── -->
+                <div class="mb-3 position-relative">
+                    <label class="form-label fw-semibold small">
+                        Médico <span class="text-danger">*</span>
+                    </label>
+                    <input type="hidden" name="MedicoId" id="MedicoId" value="" />
+                    <input type="text" id="buscarMedico"
+                           class="form-control form-control-sm"
+                           placeholder="Buscá por nombre, apellido o colegiado..."
+                           autocomplete="off" />
+                    <div id="resultadosMedico" class="buscador-resultados" style="display:none;"></div>
+                    <div id="medicoSeleccionado" class="seleccionado-badge" style="display:none;">
+                        <span class="small fw-semibold" style="color:#1a5c38;"
+                              id="nombreMedicoSeleccionado"></span>
+                        <button type="button" class="btn-close"
+                                style="font-size:.6rem;"
+                                onclick="limpiarMedico()"
+                                title="Cambiar médico"></button>
+                    </div>
+                    <span asp-validation-for="MedicoId" class="text-danger small"></span>
+                </div>
+
+                <!-- Motivo -->
+                <div class="mb-4">
+                    <label asp-for="CitaMotivo" class="form-label fw-semibold small">
+                        Motivo de consulta <span class="text-danger">*</span>
+                    </label>
+                    <textarea asp-for="CitaMotivo"
+                              class="form-control form-control-sm" rows="3"
+                              placeholder="Describa el motivo de la cita..."></textarea>
+                    <span asp-validation-for="CitaMotivo" class="text-danger small"></span>
+                </div>
+
+                <!-- Leyenda -->
+                <div class="mb-4">
+                    <p class="text-muted small fw-semibold mb-2">Leyenda</p>
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="width:12px;height:12px;border-radius:3px;background:#d1fae5;border:1px solid #065f46;display:inline-block;"></span>
+                            <span class="small text-muted">Horario disponible</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="width:12px;height:12px;border-radius:3px;background:#6366f1;display:inline-block;"></span>
+                            <span class="small text-muted">Tu selección actual</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="width:12px;height:12px;border-radius:3px;background:#f59e0b;display:inline-block;"></span>
+                            <span class="small text-muted">Programada</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="width:12px;height:12px;border-radius:3px;background:#3b82f6;display:inline-block;"></span>
+                            <span class="small text-muted">Confirmada</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="width:12px;height:12px;border-radius:3px;background:#10b981;display:inline-block;"></span>
+                            <span class="small text-muted">Atendida</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100"
+                            id="btnGuardar" disabled>
+                        Guardar cita
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                        Cancelar
+                    </a>
+                </div>
+                <p class="text-muted small mt-2 text-center" id="aviso-seleccion">
+                    Seleccioná un horario en el calendario para habilitar este botón.
+                </p>
+
+            </div>
+        </div>
+
+        <!-- ── COLUMNA DERECHA: Calendario ── -->
+        <div class="col-lg-8">
+            <div class="bg-white border rounded-4 shadow-sm p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h3 class="h6 fw-semibold mb-0" style="color:#1e7e34;">
+                        Agenda de citas
+                    </h3>
+                    <span class="text-muted small">
+                        Clic y arrastrá para seleccionar el horario
+                    </span>
+                </div>
+                <div id="calendario"></div>
+            </div>
+        </div>
+
     </div>
-
-    <div class="mb-3">
-        <label asp-for="CitaFechaInicio" class="form-label"></label>
-        <input asp-for="CitaFechaInicio" type="datetime-local" class="form-control" />
-        <span asp-validation-for="CitaFechaInicio" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="CitaFechafin" class="form-label"></label>
-        <input asp-for="CitaFechafin" type="datetime-local" class="form-control" />
-        <span asp-validation-for="CitaFechafin" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="CitaMotivo" class="form-label"></label>
-        <input asp-for="CitaMotivo" class="form-control" />
-        <span asp-validation-for="CitaMotivo" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Guardar</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
 </form>
+
+<!-- Tooltip -->
+<div id="tooltip-cita"
+     style="display:none; position:fixed; z-index:9999;
+            background:#1e293b; color:#fff; border-radius:8px;
+            padding:10px 14px; font-size:.8rem; max-width:240px;
+            pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,.2);">
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales/es.global.min.js"></script>
+
+    <script>
+        let calendario    = null;
+        let eventoPreview = null;
+
+        // Datos JSON desde el controller
+        const pacientesData = @Html.Raw(ViewBag.PacientesJson ?? "[]");
+        const medicosData   = @Html.Raw(ViewBag.MedicosJson ?? "[]");
+
+        document.addEventListener('DOMContentLoaded', function () {
+            inicializarCalendario();
+            inicializarBuscadores();
+            document.querySelectorAll('.especialidad-radio')
+                    .forEach(r => r.addEventListener('change', filtrarMedicosPorEspecialidad));
+        });
+
+        // ── Helpers generales ─────────────────────────────────────────────────
+        function pad(n) { return String(n).padStart(2, '0'); }
+
+        function formatLocal(date) {
+            return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`
+                 + `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function formatDisplay(date) {
+            const dias  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+            const meses = ['ene','feb','mar','abr','may','jun',
+                           'jul','ago','sep','oct','nov','dic'];
+            return `${dias[date.getDay()]} ${date.getDate()} ${meses[date.getMonth()]} `
+                 + `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function buildUrl() {
+            const medico = document.getElementById('MedicoId').value;
+            const radio  = document.querySelector('.especialidad-radio:checked');
+            const espId  = radio ? radio.value : '';
+            let url = '/Cita/EventosCalendario?';
+            if (medico) url += `medicoId=${medico}&`;
+            if (espId)  url += `especialidadId=${espId}&`;
+            return url;
+        }
+
+        function habilitarBoton(inicio, fin) {
+            document.getElementById('inputInicio').value = formatLocal(inicio);
+            document.getElementById('inputFin').value    = formatLocal(fin);
+            document.getElementById('resumen-horario').innerHTML = `
+                <p class="small mb-1 fw-semibold" style="color:#1e7e34;">Horario seleccionado</p>
+                <p class="small mb-0">
+                    <strong>Inicio:</strong> ${formatDisplay(inicio)}<br>
+                    <strong>Fin:</strong> ${formatDisplay(fin)}<br>
+                    <strong>Duración:</strong> ${Math.round((fin - inicio) / 60000)} min
+                </p>`;
+            document.getElementById('btnGuardar').disabled = false;
+            document.getElementById('aviso-seleccion').style.display = 'none';
+        }
+
+        function limpiarSeleccion() {
+            document.getElementById('inputInicio').value = '';
+            document.getElementById('inputFin').value    = '';
+            document.getElementById('resumen-horario').innerHTML = `
+                <p class="text-muted small mb-0 text-center">
+                    Seleccioná un horario en el calendario →
+                </p>`;
+            document.getElementById('btnGuardar').disabled = true;
+            document.getElementById('aviso-seleccion').style.display = '';
+        }
+
+        // ── Buscadores ────────────────────────────────────────────────────────
+        function inicializarBuscadores() {
+
+            // ── Paciente ──────────────────────────────────────────────────────
+            document.getElementById('buscarPaciente').addEventListener('input', function () {
+                const q = this.value.trim().toLowerCase();
+                const resultados = document.getElementById('resultadosPaciente');
+
+                if (q.length < 2) { resultados.style.display = 'none'; return; }
+
+                const filtrados = pacientesData
+                    .filter(p => p.nombre.toLowerCase().includes(q) || p.dpi.includes(q))
+                    .slice(0, 8);
+
+                if (!filtrados.length) {
+                    resultados.innerHTML = `
+                        <div class="px-3 py-2 text-muted small">
+                            Sin resultados para "<strong>${q}</strong>"
+                        </div>`;
+                } else {
+                    resultados.innerHTML = filtrados.map(p => `
+                        <div class="resultado-item"
+                             onclick="seleccionarPaciente(${p.id}, '${p.nombre.replace(/'/g,"\\'")}', '${p.dpi}')">
+                            <span class="fw-semibold" style="color:#1a5c38;">${p.nombre}</span>
+                            <span class="text-muted ms-2 small">${p.dpi}</span>
+                        </div>`).join('');
+                }
+                resultados.style.display = 'block';
+            });
+
+            // ── Médico ────────────────────────────────────────────────────────
+            document.getElementById('buscarMedico').addEventListener('input', function () {
+                const q = this.value.trim().toLowerCase();
+                const resultados = document.getElementById('resultadosMedico');
+
+                // Filtrar por especialidad seleccionada
+                const radio  = document.querySelector('.especialidad-radio:checked');
+                const espId  = radio ? radio.value : '';
+
+                if (q.length < 2) { resultados.style.display = 'none'; return; }
+
+                const filtrados = medicosData
+                    .filter(m => {
+                        const coincideEsp = espId === '' || String(m.especialidadId) === espId;
+                        const coincideQ   = m.nombre.toLowerCase().includes(q) ||
+                                            m.colegiado.toLowerCase().includes(q) ||
+                                            m.especialidad.toLowerCase().includes(q);
+                        return coincideEsp && coincideQ;
+                    })
+                    .slice(0, 8);
+
+                if (!filtrados.length) {
+                    resultados.innerHTML = `
+                        <div class="px-3 py-2 text-muted small">
+                            Sin resultados para "<strong>${q}</strong>"
+                        </div>`;
+                } else {
+                    resultados.innerHTML = filtrados.map(m => `
+                        <div class="resultado-item"
+                             onclick="seleccionarMedico(${m.id}, '${m.nombre.replace(/'/g,"\\'")}', '${m.especialidad}')">
+                            <span class="fw-semibold" style="color:#1a5c38;">${m.nombre}</span>
+                            <span class="text-muted ms-2 small">${m.especialidad}</span>
+                        </div>`).join('');
+                }
+                resultados.style.display = 'block';
+            });
+
+            // Cerrar dropdowns al hacer clic fuera
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('#buscarPaciente') &&
+                    !e.target.closest('#resultadosPaciente'))
+                    document.getElementById('resultadosPaciente').style.display = 'none';
+
+                if (!e.target.closest('#buscarMedico') &&
+                    !e.target.closest('#resultadosMedico'))
+                    document.getElementById('resultadosMedico').style.display = 'none';
+            });
+        }
+
+        function seleccionarPaciente(id, nombre, dpi) {
+            document.getElementById('PacienteId').value                   = id;
+            document.getElementById('buscarPaciente').style.display       = 'none';
+            document.getElementById('resultadosPaciente').style.display   = 'none';
+            document.getElementById('nombrePacienteSeleccionado').textContent = `${nombre} — ${dpi}`;
+            document.getElementById('pacienteSeleccionado').style.display = 'block';
+        }
+
+        function limpiarPaciente() {
+            document.getElementById('PacienteId').value                   = '';
+            document.getElementById('buscarPaciente').value               = '';
+            document.getElementById('buscarPaciente').style.display       = '';
+            document.getElementById('pacienteSeleccionado').style.display = 'none';
+            document.getElementById('resultadosPaciente').style.display   = 'none';
+        }
+
+        function seleccionarMedico(id, nombre, especialidad) {
+            document.getElementById('MedicoId').value                   = id;
+            document.getElementById('buscarMedico').style.display       = 'none';
+            document.getElementById('resultadosMedico').style.display   = 'none';
+            document.getElementById('nombreMedicoSeleccionado').textContent = `${nombre} — ${especialidad}`;
+            document.getElementById('medicoSeleccionado').style.display = 'block';
+            recargarCalendario(); // recarga el calendario con el médico seleccionado
+        }
+
+        function limpiarMedico() {
+            document.getElementById('MedicoId').value                   = '';
+            document.getElementById('buscarMedico').value               = '';
+            document.getElementById('buscarMedico').style.display       = '';
+            document.getElementById('medicoSeleccionado').style.display = 'none';
+            document.getElementById('resultadosMedico').style.display   = 'none';
+            recargarCalendario();
+        }
+
+        // ── Filtro especialidad → también filtra resultados del buscador médico
+        function filtrarMedicosPorEspecialidad() {
+            // Si ya había un médico seleccionado lo limpiamos
+            limpiarMedico();
+        }
+
+        // ── Calendario ────────────────────────────────────────────────────────
+        function inicializarCalendario() {
+            calendario = new FullCalendar.Calendar(
+                document.getElementById('calendario'), {
+                locale:            'es',
+                initialView:       'timeGridWeek',
+                headerToolbar: {
+                    left:   'prev,next today',
+                    center: 'title',
+                    right:  'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: {
+                    today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día'
+                },
+                slotMinTime:       '06:00:00',
+                slotMaxTime:       '23:00:00',
+                slotDuration:      '00:15:00',
+                slotLabelInterval: '01:00:00',
+                slotLabelFormat:   { hour: '2-digit', minute: '2-digit', hour12: false },
+                height:            620,
+                contentHeight:     570,
+                nowIndicator:      true,
+                selectable:        true,
+                selectMirror:      true,
+                unselectAuto:      false,
+                allDaySlot:        false,
+                dayMaxEvents:      true,
+                selectConstraint:  'businessHours',
+                businessHours: {
+                    daysOfWeek: [1,2,3,4,5,6],
+                    startTime:  '06:00',
+                    endTime:    '23:00'
+                },
+
+                select: function(info) {
+                    const ahora   = new Date();
+                    const minutos = (info.end - info.start) / 60000;
+
+                    if (info.start < ahora) {
+                        alert('No se puede agendar en una fecha u hora pasada.');
+                        calendario.unselect();
+                        limpiarSeleccion();
+                        return;
+                    }
+                    if (minutos < 15) {
+                        alert('La cita debe durar al menos 15 minutos.');
+                        calendario.unselect();
+                        limpiarSeleccion();
+                        return;
+                    }
+
+                    if (eventoPreview) { eventoPreview.remove(); eventoPreview = null; }
+
+                    eventoPreview = calendario.addEvent({
+                        title:      '✦ Nueva cita',
+                        start:      info.start,
+                        end:        info.end,
+                        color:      '#6366f1',
+                        textColor:  '#fff',
+                        classNames: ['fc-preview-event']
+                    });
+
+                    habilitarBoton(info.start, info.end);
+                },
+
+                events: function(fetchInfo, successCb, failureCb) {
+                    fetch(buildUrl())
+                        .then(r => r.json())
+                        .then(data => successCb(data))
+                        .catch(err => failureCb(err));
+                },
+
+                eventMouseEnter: function(info) {
+                    const p = info.event.extendedProps;
+                    if (p.tipo !== 'cita') return;
+                    const tt = document.getElementById('tooltip-cita');
+                    tt.innerHTML = `
+                        <div style="font-weight:600;margin-bottom:4px;">${info.event.title}</div>
+                        <div style="opacity:.8;font-size:.75rem;line-height:1.6;">
+                            👨‍⚕️ ${p.medico}<br>📋 ${p.motivo}<br>🔖 ${p.estado}
+                        </div>`;
+                    tt.style.display = 'block';
+                    document.addEventListener('mousemove', moverTooltip);
+                },
+                eventMouseLeave: function() {
+                    document.getElementById('tooltip-cita').style.display = 'none';
+                    document.removeEventListener('mousemove', moverTooltip);
+                },
+                eventDidMount: function(info) {
+                    if (info.event.extendedProps.tipo === 'cita')
+                        info.el.style.cursor = 'pointer';
+                }
+            });
+
+            calendario.render();
+        }
+
+        function moverTooltip(e) {
+            const tt = document.getElementById('tooltip-cita');
+            tt.style.left = (e.clientX + 16) + 'px';
+            tt.style.top  = (e.clientY + 16) + 'px';
+        }
+
+        function recargarCalendario() {
+            if (eventoPreview) { eventoPreview.remove(); eventoPreview = null; }
+            limpiarSeleccion();
+            if (calendario) calendario.refetchEvents();
+        }
+
+        setTimeout(function () {
+            const alertEl = document.querySelector('.alert.alert-success');
+            if (alertEl) bootstrap.Alert.getOrCreateInstance(alertEl).close();
+        }, 3000);
+    </script>
 }
