@@ -53,14 +53,27 @@ namespace CIVS.Controllers
                 return View();
             }
 
+            // ── GENERAR TOKEN DE SESIÓN ÚNICO ─────────────────────────────────
+            var sessionToken = GenerarTokenSesion();
+            var tokenExpiry = rememberMe
+                ? DateTime.UtcNow.AddDays(7)
+                : DateTime.UtcNow.AddHours(8);
+
+            // Actualizar el token en la base de datos
+            usuario.SessionToken = sessionToken;
+            usuario.SessionTokenExpiry = tokenExpiry;
+            await _context.SaveChangesAsync();
+
             // Crear claims
+            // Crear claims (incluyendo el token de sesión)
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.UsuarioId.ToString()),
                 new Claim(ClaimTypes.Name,           usuario.UsuarioUsername),
                 new Claim(ClaimTypes.Email,          usuario.UsuarioEmail),
                 new Claim("NombreCompleto",
-                    $"{usuario.UsuarioNombres} {usuario.UsuarioApellidos}".Trim())
+                    $"{usuario.UsuarioNombres} {usuario.UsuarioApellidos}".Trim()),
+                new Claim("SessionToken", sessionToken) // ← Token único de esta sesión
             };
 
             foreach (var ur in usuario.UsuarioRoles.Where(r => r.UsuarioRolEstado))
@@ -71,9 +84,7 @@ namespace CIVS.Controllers
             var properties = new AuthenticationProperties
             {
                 IsPersistent = rememberMe,
-                ExpiresUtc = rememberMe
-                    ? DateTimeOffset.UtcNow.AddDays(7)
-                    : DateTimeOffset.UtcNow.AddHours(8)
+                ExpiresUtc = tokenExpiry
             };
 
             await HttpContext.SignInAsync(
@@ -111,5 +122,19 @@ namespace CIVS.Controllers
             return Convert.ToHexString(
                 sha.ComputeHash(Encoding.UTF8.GetBytes(password))).ToLower();
         }
+
+        // ── Generar token de sesión único ─────────────────────────────────────
+        private static string GenerarTokenSesion()
+        {
+            // Generar un token criptográficamente seguro
+            var randomBytes = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomBytes);
+            }
+            return Convert.ToBase64String(randomBytes);
+        }
+
+
     }
 }

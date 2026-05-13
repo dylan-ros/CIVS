@@ -1,4 +1,5 @@
 ﻿using CIVS.Data;
+using CIVS.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,6 +39,10 @@ app.UseRouting();
 
 // IMPORTANTE: Authentication ANTES que Authorization
 app.UseAuthentication();
+
+// ── Validación de token de sesión (después de autenticación) ─────────
+app.UseSessionTokenValidation();
+
 app.UseAuthorization();
 
 // Login como página de inicio
