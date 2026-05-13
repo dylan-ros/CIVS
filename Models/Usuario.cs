@@ -28,6 +28,12 @@ namespace CIVS.Models
         [StringLength(80)]
         public string? UsuarioApellidos { get; set; }
 
+        // ── Control de sesion unica ─---
+        [StringLength(100)]
+        public string? SessionToken { get; set; }
+
+        public DateTime? SessionTokenExpiry { get; set; }
+
         // Navegación a tabla puente
         public ICollection<UsuarioRol> UsuarioRoles { get; set; } = new List<UsuarioRol>();
     }

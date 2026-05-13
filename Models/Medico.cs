@@ -10,11 +10,12 @@ namespace CIVS.Models
         public int MedicoId { get; set; }
 
         // FK Especialidad
-        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar una especialidad.")]
         public int EspecialidadId { get; set; }
 
         [ForeignKey(nameof(EspecialidadId))]
-        public Especialidad Especialidad { get; set; } = null!;
+        public Especialidad? Especialidad { get; set; }
+        public int? UsuarioId { get; set; }
 
         [Required, StringLength(50)]
         public string MedicoNombres { get; set; } = string.Empty;

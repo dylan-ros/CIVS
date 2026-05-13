@@ -1,0 +1,141 @@
+﻿@{
+    ViewData["Title"] = "Iniciar consulta";
+    var cita = ViewBag.Cita as CIVS.Models.Cita;
+    var historial = ViewBag.Historial as List<CIVS.Models.Consulta>;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["Error"]</div>
+}
+
+<form asp-action="IniciarConsulta" asp-controller="Consulta" method="post" class="mt-3">
+    <input type="hidden" name="CitaId" value="@cita!.CitaId" />
+
+    <div class="row g-3">
+
+        <!-- Ficha del paciente -->
+        <div class="col-lg-4">
+            <div class="bg-white border rounded-4 shadow-sm p-4 h-100">
+
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge rounded-pill"
+                          style="background:#e9f7ef;color:#1e7e34;border:1px solid #cfeedd;">
+                        Consulta
+                    </span>
+                    <span class="text-muted small">Ficha del paciente</span>
+                </div>
+
+                <!-- Avatar -->
+                <div class="d-flex align-items-center gap-3 my-3">
+                    <div style="width:52px;height:52px;border-radius:50%;
+                                background:linear-gradient(135deg,#e8f5ee,#d1fae5);
+                                display:flex;align-items:center;justify-content:center;
+                                font-weight:700;color:#1a5c38;font-size:1.1rem;flex-shrink:0;">
+                        @cita.Paciente!.PacienteNombres[0]@cita.Paciente.PacienteApellido[0]
+                    </div>
+                    <div>
+                        <p class="fw-bold mb-0" style="color:#1a2e22;">
+                            @cita.Paciente.PacienteNombres @cita.Paciente.PacienteApellido
+                        </p>
+                        <p class="text-muted small mb-0">DPI: @cita.Paciente.PacienteDPI</p>
+                    </div>
+                </div>
+
+                <hr class="my-3" />
+
+                <div class="d-flex flex-column gap-2 small">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Teléfono</span>
+                        <span class="fw-semibold">@cita.Paciente.PacienteTelefono</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Médico</span>
+                        <span class="fw-semibold">
+                            Dr. @cita.Medico!.MedicoNombres @cita.Medico.MedicoApellidos
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Especialidad</span>
+                        <span class="fw-semibold">
+                            @(cita.Medico.Especialidad?.EspecialidadNombre ?? "—")
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Motivo</span>
+                        <span class="fw-semibold">@cita.CitaMotivo</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Horario</span>
+                        <span class="fw-semibold">
+                            @cita.CitaFechaInicio.ToString("HH:mm") —
+                            @cita.CitaFechafin.ToString("HH:mm")
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Historial -->
+                @if (historial != null && historial.Any())
+                {
+                    <hr class="my-3" />
+                    <p class="text-muted small fw-semibold mb-2">Consultas anteriores</p>
+                    @foreach (var h in historial)
+                    {
+                        <div class="border rounded-3 px-3 py-2 mb-2 small">
+                            <p class="mb-0 fw-semibold" style="color:#1a5c38;">
+                                @h.ConsultaFechaRegistro.ToString("dd/MM/yyyy")
+                            </p>
+                            <p class="text-muted mb-0 small">
+                                @h.ConsultaSignosVitales
+                            </p>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <div class="col-lg-8">
+            <div class="bg-white border rounded-4 shadow-sm p-4">
+                <h2 class="fw-semibold mb-4" style="color:#1a5c38;font-size:1.2rem;">
+                    Registro de consulta
+                </h2>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">
+                        Signos vitales <span class="text-danger">*</span>
+                    </label>
+                    <input name="ConsultaSignosVitales" class="form-control"
+                           placeholder="Ej. PA: 120/80, FC: 72 lpm, T°: 36.5°C, SpO2: 98%"
+                           required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">
+                        Notas clínicas / Síntomas <span class="text-danger">*</span>
+                    </label>
+                    <textarea name="ConsultaNotasClinicas" class="form-control" rows="4"
+                              placeholder="Síntomas, evolución, hallazgos del examen físico..."
+                              required></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small">
+                        Plan de tratamiento <span class="text-danger">*</span>
+                    </label>
+                    <textarea name="ConsultaPlanTratamiento" class="form-control" rows="3"
+                              placeholder="Plan de tratamiento, indicaciones y recomendaciones..."
+                              required></textarea>
+                </div>
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <button type="submit" class="btn btn-primary">
+                        Guardar y continuar →
+                    </button>
+                    <a asp-controller="Cita" asp-action="Index"
+                       class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

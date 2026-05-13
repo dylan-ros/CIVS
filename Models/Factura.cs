@@ -50,5 +50,8 @@ namespace CIVS.Models
 
         public DateTime FacturaFechaRegistro { get; set; } = DateTime.UtcNow;
 
+        public ICollection<FacturaDetalle> Detalles { get; set; } = new List<FacturaDetalle>();
+        public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
+
     }
 }

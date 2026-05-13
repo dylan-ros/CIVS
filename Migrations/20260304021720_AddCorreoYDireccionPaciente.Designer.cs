@@ -4,6 +4,7 @@ using CIVS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CIVS.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260304021720_AddCorreoYDireccionPaciente")]
+    partial class AddCorreoYDireccionPaciente
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -521,9 +524,6 @@ namespace CIVS.Migrations
                         .HasMaxLength(18)
                         .HasColumnType("nvarchar(18)");
 
-                    b.Property<int?>("UsuarioId")
-                        .HasColumnType("int");
-
                     b.HasKey("MedicoId");
 
                     b.HasIndex("EspecialidadId");
@@ -981,7 +981,7 @@ namespace CIVS.Migrations
                         .HasForeignKey("ExamenId");
 
                     b.HasOne("CIVS.Models.Factura", "Factura")
-                        .WithMany("Detalles")
+                        .WithMany()
                         .HasForeignKey("FacturaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1074,7 +1074,7 @@ namespace CIVS.Migrations
             modelBuilder.Entity("CIVS.Models.Pago", b =>
                 {
                     b.HasOne("CIVS.Models.Factura", "Factura")
-                        .WithMany("Pagos")
+                        .WithMany()
                         .HasForeignKey("FacturaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1110,7 +1110,7 @@ namespace CIVS.Migrations
                         .IsRequired();
 
                     b.HasOne("CIVS.Models.Receta", "Receta")
-                        .WithMany("RecetaDetalles")
+                        .WithMany()
                         .HasForeignKey("RecetaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1139,21 +1139,9 @@ namespace CIVS.Migrations
                     b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("CIVS.Models.Factura", b =>
-                {
-                    b.Navigation("Detalles");
-
-                    b.Navigation("Pagos");
-                });
-
             modelBuilder.Entity("CIVS.Models.OrdenExamen", b =>
                 {
                     b.Navigation("OrdenDetalles");
-                });
-
-            modelBuilder.Entity("CIVS.Models.Receta", b =>
-                {
-                    b.Navigation("RecetaDetalles");
                 });
 
             modelBuilder.Entity("CIVS.Models.Rol", b =>

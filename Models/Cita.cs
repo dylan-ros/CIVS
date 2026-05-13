@@ -18,17 +18,15 @@ namespace CIVS.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int CitaId { get; set; }
 
-        [Required]
         public int PacienteId { get; set; }
 
         [ForeignKey(nameof(PacienteId))]
-        public Paciente Paciente { get; set; } = null!;
+        public Paciente? Paciente { get; set; }
 
-        [Required]
         public int MedicoId { get; set; }
 
         [ForeignKey(nameof(MedicoId))]
-        public Medico Medico { get; set; } = null!;
+        public Medico? Medico { get; set; }
 
         [Required]
         public DateTime CitaFechaInicio { get; set; }

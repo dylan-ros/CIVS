@@ -1,0 +1,95 @@
+﻿@model List<CIVS.Models.Medico>
+
+@{
+    ViewData["Title"] = "Consulta de médicos";
+    var q = ViewBag.Q as string;
+}
+
+<div class="bg-white border rounded-4 shadow-sm p-4">
+
+    <!-- Encabezado -->
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill"
+                      style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                    Front Office
+                </span>
+                <span class="text-muted small">Médicos</span>
+            </div>
+            <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
+                Consulta de médicos
+            </h2>
+            <p class="text-muted mb-0">
+                Buscá por nombre, apellido, colegiado, especialidad, teléfono o correo.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="CrearMedico" class="btn btn-primary">+ Nuevo médico</a>
+        </div>
+    </div>
+
+    <hr class="my-3" />
+
+    <!-- Buscador -->
+    <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-12 col-md-6">
+            <label class="form-label">Buscar</label>
+            <input name="q" value="@q" class="form-control"
+                   placeholder="Ej. García, 12345, Cardiología..." />
+        </div>
+        <div class="col-12 col-md-auto">
+            <button type="submit" class="btn btn-outline-primary w-100">Buscar</button>
+        </div>
+        <div class="col-12 col-md-auto">
+            <a asp-action="Index" class="btn btn-outline-secondary w-100">Limpiar</a>
+        </div>
+    </form>
+
+    <!-- Resultados -->
+    @if (string.IsNullOrWhiteSpace(q))
+    {
+        <div class="alert alert-light border mb-0">
+            Ingresá un término de búsqueda para consultar médicos.
+        </div>
+    }
+    else if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-light border mb-0">
+            No se encontraron médicos para: <strong>@q</strong>.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Colegiado</th>
+                        <th>Nombre completo</th>
+                        <th>Especialidad</th>
+                        <th>Teléfono</th>
+                        <th>Correo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@m.MedicoColegiado</td>
+                            <td>@m.MedicoNombres @m.MedicoApellidos</td>
+                            <td>@(m.Especialidad?.EspecialidadNombre ?? "-")</td>
+                            <td>@m.MedicoTelefono</td>
+                            <td>@(string.IsNullOrWhiteSpace(m.MedicoEmail) ? "-" : m.MedicoEmail)</td>
+                            <td>@(m.MedicoEstado ? "Activo" : "Inactivo")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+        <p class="text-muted small mb-0 mt-2">
+            @Model.Count médico(s) encontrado(s) para «@q».
+        </p>
+</div>
