@@ -134,5 +134,20 @@
 
     <hr class="my-3" />
 
-    <a asp-action="Index" class="btn btn-outline-secondary">Volver al corte</a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            Volver al corte
+        </a>
+
+        <a asp-action="Facturas" class="btn btn-outline-success">
+            Ver facturas
+        </a>
+
+        <a asp-action="FacturaImprimir"
+           asp-route-id="@Model.FacturaId"
+           target="_blank"
+           class="btn btn-success">
+            Guardar PDF / Imprimir
+        </a>
+    </div>
 </div>

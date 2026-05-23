@@ -1,0 +1,181 @@
+﻿@model List<CIVS.Models.Factura>
+
+@{
+    ViewData["Title"] = "Facturas";
+
+    string numero = ViewBag.Numero as string ?? "";
+    int totalFacturas = Convert.ToInt32(ViewBag.TotalFacturas ?? 0);
+}
+
+<div class="bg-white border rounded-4 shadow-sm p-4 mt-3">
+
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill"
+                      style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                    Corte de Caja
+                </span>
+                <span class="text-muted small">Facturas</span>
+            </div>
+
+            <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34;">
+                Consulta de facturas
+            </h2>
+
+            <p class="text-muted mb-0">
+                Busca facturas por número, visualízalas y guárdalas como PDF para impresión.
+            </p>
+        </div>
+
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            Volver al reporte financiero
+        </a>
+    </div>
+
+    <hr class="my-3" />
+
+    <form asp-action="Facturas" method="get" class="row g-2 align-items-end mb-4">
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold">Buscar por número de factura</label>
+            <input type="text"
+                   name="numero"
+                   value="@numero"
+                   class="form-control"
+                   placeholder="Ej. FAC-000005" />
+        </div>
+
+        <div class="col-md-auto">
+            <button type="submit" class="btn btn-primary w-100">
+                Buscar
+            </button>
+        </div>
+
+        <div class="col-md-auto">
+            <a asp-action="Facturas" class="btn btn-outline-secondary w-100">
+                Ver todas
+            </a>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="h6 fw-semibold mb-0" style="color:#1a5c38;">
+            Facturas encontradas
+        </h3>
+
+        <span class="text-muted small">
+            @totalFacturas resultado(s)
+        </span>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-light border text-center text-muted">
+            No se encontraron facturas con ese número.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>No. Factura</th>
+                        <th>Paciente</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Método pago</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var f in Model)
+                    {
+                        var pagoActivo = f.Pagos?.FirstOrDefault(p => p.PagoEstado);
+
+                        <tr>
+                            <td class="fw-semibold">
+                                @(f.FacturaNumero ?? $"#{f.FacturaId}")
+                            </td>
+
+                            <td>
+                                @if (f.Paciente != null)
+                                {
+                                    <span>@f.Paciente.PacienteNombres @f.Paciente.PacienteApellido</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Paciente no cargado</span>
+                                }
+                            </td>
+
+                            <td class="text-muted small">
+                                @f.FacturaFecha.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+
+                            <td>
+                                @switch (f.FacturaEstado)
+                                {
+                                    case CIVS.Models.EstadoFactura.Emitida:
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                            Pendiente
+                                        </span>
+                                        break;
+
+                                    case CIVS.Models.EstadoFactura.Pagada:
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            Pagada
+                                        </span>
+                                        break;
+
+                                    case CIVS.Models.EstadoFactura.Anulada:
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                            Anulada
+                                        </span>
+                                        break;
+                                }
+                            </td>
+
+                            <td>
+                                @if (pagoActivo?.MetodoPago != null)
+                                {
+                                    <span class="badge rounded-pill"
+                                          style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                                        @pagoActivo.MetodoPago.MetodoPagoNombre
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Sin pago registrado</span>
+                                }
+                            </td>
+
+                            <td class="fw-bold text-end">
+                                Q @f.FacturaTotal.ToString("0.00")
+                            </td>
+
+                            <td class="text-end">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a asp-action="DetalleFactura"
+                                       asp-route-id="@f.FacturaId"
+                                       class="btn btn-sm btn-outline-primary">
+                                        Ver detalle
+                                    </a>
+
+                                    <a asp-action="FacturaImprimir"
+                                       asp-route-id="@f.FacturaId"
+                                       target="_blank"
+                                       class="btn btn-sm btn-success">
+                                        Guardar PDF / Imprimir
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

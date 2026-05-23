@@ -2,28 +2,156 @@
 
 @{
     ViewData["Title"] = "Corte de caja";
+
+    decimal totalDia = Convert.ToDecimal(ViewBag.TotalDia ?? 0);
+    decimal totalPendiente = Convert.ToDecimal(ViewBag.TotalPendiente ?? 0);
+    decimal totalSemana = Convert.ToDecimal(ViewBag.TotalSemana ?? 0);
+    decimal totalMes = Convert.ToDecimal(ViewBag.TotalMes ?? 0);
+    decimal totalAnio = Convert.ToDecimal(ViewBag.TotalAnio ?? 0);
+
+    int totalFacturas = Convert.ToInt32(ViewBag.TotalFacturas ?? 0);
+    int totalPagadas = Convert.ToInt32(ViewBag.TotalPagadas ?? 0);
+    int totalEmitidas = Convert.ToInt32(ViewBag.TotalEmitidas ?? 0);
+
+    string fecha = ViewBag.Fecha ?? DateTime.Now.ToString("yyyy-MM-dd");
+    string fechaDisplay = ViewBag.FechaDisplay ?? DateTime.Now.ToString("dd/MM/yyyy");
+
+    var metodos = ViewBag.PorMetodoPago as IEnumerable<dynamic>;
+
+    string labelsSemana = ViewBag.LabelsSemana ?? "[]";
+    string dataSemana = ViewBag.DataSemana ?? "[]";
+    string labelsMes = ViewBag.LabelsMes ?? "[]";
+    string dataMes = ViewBag.DataMes ?? "[]";
+    string labelsAnio = ViewBag.LabelsAnio ?? "[]";
+    string dataAnio = ViewBag.DataAnio ?? "[]";
 }
 
-<div class="bg-white border rounded-4 shadow-sm p-4 mt-3">
+@if (TempData["Success"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:430px;">
+        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:430px;">
+        <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
+<style>
+    .corte-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 1rem;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+    }
+
+    .corte-metric {
+        border: 1px solid #e5e7eb;
+        border-radius: 1rem;
+        padding: 1rem;
+        background: linear-gradient(180deg, #ffffff, #f8fdfb);
+        height: 100%;
+    }
+
+        .corte-metric .label {
+            color: #64748b;
+            font-size: .78rem;
+            margin-bottom: .25rem;
+        }
+
+        .corte-metric .value {
+            font-weight: 700;
+            font-size: 1.45rem;
+            margin-bottom: 0;
+            color: #1a5c38;
+        }
+
+    .chart-box {
+        border: 1px solid #e5e7eb;
+        border-radius: 1rem;
+        padding: 1rem;
+        height: 100%;
+        background: #fff;
+    }
+
+    .chart-wrap {
+        position: relative;
+        height: 220px;
+        width: 100%;
+    }
+
+    .badge-soft-green {
+        background: #e9f7ef;
+        color: #1e7e34;
+        border: 1px solid #cfeedd;
+    }
+
+    .badge-soft-warning {
+        background: #fff7ed;
+        color: #b45309;
+        border: 1px solid #fed7aa;
+    }
+
+    .table thead th {
+        font-size: .78rem;
+        color: #475569;
+        font-weight: 700;
+        border-bottom: 1px solid #d1d5db;
+    }
+
+    .table tbody td {
+        font-size: .86rem;
+        vertical-align: middle;
+    }
+</style>
+
+<div class="corte-card p-4 mt-3">
 
     <!-- Encabezado -->
-    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge rounded-pill"
-                      style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                <span class="badge rounded-pill badge-soft-green">
                     Corte de Caja
                 </span>
                 <span class="text-muted small">Reporte financiero</span>
             </div>
+
             <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
-                Corte de caja — @ViewBag.FechaDisplay
+                Corte de caja — @fechaDisplay
             </h2>
+
             <p class="text-muted mb-0">
-                Resumen de facturas emitidas y pagos recibidos del día.
+                Resumen de pagos recibidos, facturas pendientes y ventas generadas por semana, mes y año.
             </p>
         </div>
-        <a asp-action="CrearFactura" class="btn btn-primary">+ Nueva factura</a>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-action="Facturas" class="btn btn-outline-success">
+                Facturas
+            </a>
+
+            <a asp-action="FacturasPendientes" class="btn btn-warning">
+                Facturas pendientes de cobrar
+                @if (totalEmitidas > 0)
+                {
+                    <span class="badge bg-light text-dark ms-1">@totalEmitidas</span>
+                }
+            </a>
+
+            <a asp-action="CrearFactura" class="btn btn-primary">
+                + Nueva factura
+            </a>
+        </div>
     </div>
 
     <hr class="my-3" />
@@ -31,77 +159,164 @@
     <!-- Filtro de fecha -->
     <form method="get" class="row g-2 align-items-end mb-4">
         <div class="col-12 col-md-3">
-            <label class="form-label">Fecha</label>
-            <input type="date" name="fecha" value="@ViewBag.Fecha" class="form-control" />
+            <label class="form-label small fw-semibold">Fecha del corte</label>
+            <input type="date" name="fecha" value="@fecha" class="form-control" />
         </div>
+
         <div class="col-12 col-md-auto">
-            <button type="submit" class="btn btn-outline-primary w-100">Ver corte</button>
+            <button type="submit" class="btn btn-outline-primary w-100">
+                Ver corte
+            </button>
         </div>
+
         <div class="col-12 col-md-auto">
-            <a asp-action="Index" class="btn btn-outline-secondary w-100">Hoy</a>
+            <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                Hoy
+            </a>
         </div>
     </form>
 
     <!-- Tarjetas resumen -->
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="border rounded-3 p-3 text-center">
-                <p class="text-muted small mb-1">Total del día</p>
-                <p class="fw-bold fs-4 mb-0" style="color:#1e7e34;">
-                    Q @ViewBag.TotalDia.ToString("0.00")
-                </p>
+            <div class="corte-metric">
+                <p class="label">Total cobrado del día</p>
+                <p class="value">Q @totalDia.ToString("0.00")</p>
+                <span class="text-muted small">Calculado por fecha de pago</span>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="border rounded-3 p-3 text-center">
-                <p class="text-muted small mb-1">Facturas emitidas</p>
-                <p class="fw-bold fs-4 mb-0">@ViewBag.TotalFacturas</p>
+            <div class="corte-metric">
+                <p class="label">Facturas pagadas</p>
+                <p class="value text-success">@totalPagadas</p>
+                <span class="text-muted small">Cobros confirmados</span>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="border rounded-3 p-3 text-center">
-                <p class="text-muted small mb-1">Pagadas</p>
-                <p class="fw-bold fs-4 mb-0 text-success">@ViewBag.TotalPagadas</p>
+            <div class="corte-metric">
+                <p class="label">Pendientes de cobro</p>
+                <p class="value text-warning">@totalEmitidas</p>
+                <span class="text-muted small">Q @totalPendiente.ToString("0.00") pendientes</span>
             </div>
         </div>
+
         <div class="col-md-3">
-            <div class="border rounded-3 p-3 text-center">
-                <p class="text-muted small mb-1">Pendientes de pago</p>
-                <p class="fw-bold fs-4 mb-0 text-warning">@ViewBag.TotalEmitidas</p>
+            <div class="corte-metric">
+                <p class="label">Facturas del reporte</p>
+                <p class="value">@totalFacturas</p>
+                <span class="text-muted small">Mostradas en la tabla</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficas principales -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="chart-box">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h3 class="h6 fw-semibold mb-0" style="color:#1a5c38;">Ventas de la semana</h3>
+                        <span class="text-muted small">Últimos 7 días</span>
+                    </div>
+                    <span class="badge rounded-pill badge-soft-green">
+                        Q @totalSemana.ToString("0.00")
+                    </span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="graficaSemana"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="chart-box">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h3 class="h6 fw-semibold mb-0" style="color:#1a5c38;">Ventas del mes</h3>
+                        <span class="text-muted small">Mes actual</span>
+                    </div>
+                    <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle">
+                        Q @totalMes.ToString("0.00")
+                    </span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="graficaMes"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="chart-box">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h3 class="h6 fw-semibold mb-0" style="color:#1a5c38;">Ventas del año</h3>
+                        <span class="text-muted small">Año actual</span>
+                    </div>
+                    <span class="badge rounded-pill badge-soft-warning">
+                        Q @totalAnio.ToString("0.00")
+                    </span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="graficaAnio"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Totales por método de pago -->
-    @if (ViewBag.PorMetodoPago != null)
+    @if (metodos != null && metodos.Any())
     {
-        var metodos = ViewBag.PorMetodoPago as IEnumerable<dynamic>;
-        if (metodos != null && metodos.Any())
-        {
-            <div class="mb-4">
-                <h3 class="h6 fw-semibold mb-2">Ingresos por método de pago</h3>
-                <div class="d-flex flex-wrap gap-2">
-                    @foreach (var m in metodos)
-                    {
-                        <div class="border rounded-3 px-3 py-2 d-flex gap-3 align-items-center">
-                            <span class="text-muted small">@m.Metodo</span>
-                            <span class="fw-bold" style="color:#1e7e34;">
-                                Q @m.Total.ToString("0.00")
-                            </span>
-                        </div>
-                    }
-                </div>
+        <div class="mb-4">
+            <h3 class="h6 fw-semibold mb-2" style="color:#1a5c38;">
+                Ingresos por método de pago
+            </h3>
+
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var m in metodos)
+                {
+                    <div class="border rounded-3 px-3 py-2 d-flex gap-3 align-items-center bg-light">
+                        <span class="text-muted small">@m.Metodo</span>
+                        <span class="fw-bold" style="color:#1e7e34;">
+                            Q @Convert.ToDecimal(m.Total).ToString("0.00")
+                        </span>
+                    </div>
+                }
             </div>
-        }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-light border mb-4">
+            No hay pagos registrados por método de pago para este corte.
+        </div>
     }
 
     <hr class="my-3" />
 
-    <!-- Tabla de facturas -->
+    <!-- Tabla de facturas pagadas -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <h3 class="h6 fw-semibold mb-1" style="color:#1a5c38;">
+                Facturas cobradas del día
+            </h3>
+            <p class="text-muted small mb-0">
+                Este listado se basa en pagos registrados en la fecha seleccionada.
+            </p>
+        </div>
+    </div>
+
     @if (Model == null || !Model.Any())
     {
         <div class="alert alert-light border mb-0">
-            No hay facturas registradas para el día <strong>@ViewBag.FechaDisplay</strong>.
+            No hay facturas pagadas para el día <strong>@fechaDisplay</strong>.
+            @if (totalEmitidas > 0)
+            {
+                <span>
+                    Hay <strong>@totalEmitidas</strong> factura(s) pendiente(s) de cobrar.
+                </span>
+            }
         </div>
     }
     else
@@ -112,43 +327,60 @@
                     <tr>
                         <th>No. Factura</th>
                         <th>Paciente</th>
-                        <th>Hora</th>
+                        <th>Hora de factura</th>
                         <th>Método de pago</th>
-                        <th>Total</th>
+                        <th class="text-end">Total</th>
                         <th>Estado</th>
-                        <th></th>
+                        <th class="text-end">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var f in Model)
                     {
+                        var pagoActivo = f.Pagos?.FirstOrDefault(p => p.PagoEstado);
+
                         <tr>
-                            <td class="fw-semibold">@(f.FacturaNumero ?? $"#{f.FacturaId}")</td>
-                            <td>
-                                @f.Paciente.PacienteNombres @f.Paciente.PacienteApellido
+                            <td class="fw-semibold">
+                                @(f.FacturaNumero ?? $"#{f.FacturaId}")
                             </td>
+
+                            <td>
+                                @if (f.Paciente != null)
+                                {
+                                    <span>@f.Paciente.PacienteNombres @f.Paciente.PacienteApellido</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Paciente no cargado</span>
+                                }
+                            </td>
+
                             <td class="text-muted small">
                                 @f.FacturaFecha.ToString("HH:mm")
                             </td>
+
                             <td>
-                                @if (f.Pagos != null && f.Pagos.Any())
+                                @if (pagoActivo?.MetodoPago != null)
                                 {
-                                    <span class="badge rounded-pill"
-                                          style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
-                                        @f.Pagos.First().MetodoPago.MetodoPagoNombre
+                                    <span class="badge rounded-pill badge-soft-green">
+                                        @pagoActivo.MetodoPago.MetodoPagoNombre
                                     </span>
                                 }
                                 else
                                 {
-                                    <span class="text-muted small">—</span>
+                                    <span class="text-muted small">Registrado</span>
                                 }
                             </td>
-                            <td class="fw-semibold">Q @f.FacturaTotal.ToString("0.00")</td>
+
+                            <td class="fw-semibold text-end">
+                                Q @f.FacturaTotal.ToString("0.00")
+                            </td>
+
                             <td>
                                 @switch (f.FacturaEstado)
                                 {
                                     case CIVS.Models.EstadoFactura.Emitida:
-                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Emitida</span>
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Pendiente</span>
                                         break;
                                     case CIVS.Models.EstadoFactura.Pagada:
                                         <span class="badge bg-success-subtle text-success border border-success-subtle">Pagada</span>
@@ -158,7 +390,8 @@
                                         break;
                                 }
                             </td>
-                            <td>
+
+                            <td class="text-end">
                                 <a asp-action="DetalleFactura" asp-route-id="@f.FacturaId"
                                    class="btn btn-sm btn-outline-primary">
                                     Ver detalle
@@ -169,9 +402,81 @@
                 </tbody>
             </table>
         </div>
+
         <p class="text-muted small mb-0 mt-2">
-            @Model.Count factura(s) para el @ViewBag.FechaDisplay.
+            @Model.Count factura(s) cobradas para el @fechaDisplay.
         </p>
     }
-
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const labelsSemana = @Html.Raw(labelsSemana);
+        const dataSemana = @Html.Raw(dataSemana);
+
+        const labelsMes = @Html.Raw(labelsMes);
+        const dataMes = @Html.Raw(dataMes);
+
+        const labelsAnio = @Html.Raw(labelsAnio);
+        const dataAnio = @Html.Raw(dataAnio);
+
+        function crearGrafica(id, labels, data, etiqueta, tipo = 'bar') {
+            const canvas = document.getElementById(id);
+            if (!canvas) return;
+
+            new Chart(canvas, {
+                type: tipo,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: etiqueta,
+                        data: data,
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        tension: .35,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return 'Q ' + Number(context.raw || 0).toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return 'Q ' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        crearGrafica('graficaSemana', labelsSemana, dataSemana, 'Ventas semana', 'bar');
+        crearGrafica('graficaMes', labelsMes, dataMes, 'Ventas mes', 'line');
+        crearGrafica('graficaAnio', labelsAnio, dataAnio, 'Ventas año', 'bar');
+
+        setTimeout(function () {
+            document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
+                .forEach(function (alertEl) {
+                    bootstrap.Alert.getOrCreateInstance(alertEl).close();
+                });
+        }, 3500);
+    </script>
+}

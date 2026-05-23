@@ -258,6 +258,53 @@ namespace CIVS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // POST: /Cita/CancelarCitaAjax
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelarCitaAjax(int id, string motivoCancelacion)
+        {
+            if (string.IsNullOrWhiteSpace(motivoCancelacion))
+            {
+                return Json(new
+                {
+                    ok = false,
+                    mensaje = "Debe ingresar el motivo de cancelación."
+                });
+            }
+
+            var cita = await _context.Citas.FindAsync(id);
+
+            if (cita == null)
+            {
+                return Json(new
+                {
+                    ok = false,
+                    mensaje = "No se encontró la cita seleccionada."
+                });
+            }
+
+            if (cita.EstadoCita == EstadoCita.atendida)
+            {
+                return Json(new
+                {
+                    ok = false,
+                    mensaje = "No se puede cancelar una cita que ya fue atendida."
+                });
+            }
+
+            cita.EstadoCita = EstadoCita.cancelada;
+            cita.CitaMotivoCancelacion = motivoCancelacion.Trim();
+            cita.CitaFechaCancelacion = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                ok = true,
+                mensaje = "Cita cancelada exitosamente."
+            });
+        }
+
         // ── Helpers ───────────────────────────────────────────────────────────
 
         private async Task CargarCombos(int? pacienteId = null, int? medicoId = null)

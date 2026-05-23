@@ -34,6 +34,12 @@ namespace CIVS.Models
 
         public DateTime? SessionTokenExpiry { get; set; }
 
+        // ── Reset de Contraseña ───────────────────────────────────────────────
+        [StringLength(100)]
+        public string? PasswordResetToken { get; set; }
+
+        public DateTime? PasswordResetTokenExpiry { get; set; }
+
         // Navegación a tabla puente
         public ICollection<UsuarioRol> UsuarioRoles { get; set; } = new List<UsuarioRol>();
     }

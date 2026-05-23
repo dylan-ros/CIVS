@@ -1,0 +1,159 @@
+﻿@model List<CIVS.Models.Factura>
+
+@{
+    ViewData["Title"] = "Facturas pendientes de cobrar";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="bg-white border rounded-4 shadow-sm p-4 mt-3">
+
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill"
+                      style="background:#fff7ed; color:#b45309; border:1px solid #fed7aa;">
+                    Corte de Caja
+                </span>
+                <span class="text-muted small">Cobros pendientes</span>
+            </div>
+
+            <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34;">
+                Facturas pendientes de cobrar
+            </h2>
+
+            <p class="text-muted mb-0">
+                Aquí aparecen las recetas, servicios o productos que ya fueron facturados,
+                pero todavía no han sido cobrados.
+            </p>
+        </div>
+
+        <a asp-controller="CorteCaja"
+           asp-action="CrearFactura"
+           class="btn btn-outline-secondary btn-sm">
+            Volver a nueva factura
+        </a>
+    </div>
+
+    <hr class="my-3" />
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-light border text-center text-muted">
+            No hay facturas pendientes de cobrar.
+        </div>
+    }
+    else
+    {
+        <div class="d-flex justify-content-end mb-3">
+            <div class="border rounded-3 px-3 py-2 bg-light">
+                <span class="text-muted small">Total pendiente:</span>
+                <span class="fw-bold text-warning ms-2">
+                    Q @Model.Sum(f => f.FacturaTotal).ToString("0.00")
+                </span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Factura</th>
+                        <th>Paciente</th>
+                        <th>Fecha</th>
+                        <th>Detalle</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var factura in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">
+                                @factura.FacturaNumero
+                            </td>
+
+                            <td>
+                                @factura.Paciente.PacienteNombres @factura.Paciente.PacienteApellido
+                            </td>
+
+                            <td>
+                                @factura.FacturaFecha.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+
+                            <td>
+                                @if (factura.Detalles != null && factura.Detalles.Any())
+                                {
+                                    <ul class="mb-0 small">
+                                        @foreach (var d in factura.Detalles.Take(3))
+                                        {
+                                            <li>@d.DetalleDescripcion</li>
+                                        }
+
+                                        @if (factura.Detalles.Count > 3)
+                                        {
+                                            <li class="text-muted">
+                                                + @(factura.Detalles.Count - 3) más
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Sin detalle</span>
+                                }
+                            </td>
+
+                            <td class="text-end fw-bold">
+                                Q @factura.FacturaTotal.ToString("0.00")
+                            </td>
+
+                            <td class="text-center">
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a asp-controller="CorteCaja"
+                                       asp-action="DetalleFactura"
+                                       asp-route-id="@factura.FacturaId"
+                                       class="btn btn-outline-primary btn-sm">
+                                        Ver
+                                    </a>
+
+                                    <form asp-controller="CorteCaja"
+                                          asp-action="MarcarFacturaPagada"
+                                          method="post"
+                                          class="d-inline">
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden"
+                                               name="facturaId"
+                                               value="@factura.FacturaId" />
+
+                                        <button type="submit"
+                                                class="btn btn-success btn-sm"
+                                                onclick="return confirm('¿Confirmar que esta factura ya fue pagada?');">
+                                            Pagado
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
