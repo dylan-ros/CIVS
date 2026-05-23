@@ -2,12 +2,15 @@
 
 @{
     ViewData["Title"] = "Detalle de consulta";
+
     var diagnosticos = ViewBag.Diagnosticos as List<CIVS.Models.ConsultaDiagnostico>;
     var recetas = ViewBag.Recetas as List<CIVS.Models.Receta>;
     var ordenes = ViewBag.Ordenes as List<CIVS.Models.OrdenExamen>;
     var medicamentosJson = ViewBag.MedicamentosJson as string;
     var diagJson = ViewBag.DiagnosticosJson as string;
     int? facturaId = ViewBag.FacturaId;
+
+    bool tieneFactura = facturaId != null;
 }
 
 @if (TempData["Success"] != null)
@@ -19,6 +22,7 @@
         </div>
     </div>
 }
+
 @if (TempData["Error"] != null)
 {
     <div style="position:fixed;top:20px;right:20px;z-index:9999;min-width:320px;max-width:420px;">
@@ -55,7 +59,7 @@
                         @Model.Cita.Paciente.PacienteNombres @Model.Cita.Paciente.PacienteApellido
                     </p>
                     <p class="text-muted mb-0" style="font-size:.72rem;">
-                        @Model.Cita.Paciente.PacienteDPI
+                        DPI: @Model.Cita.Paciente.PacienteDPI
                     </p>
                 </div>
             </div>
@@ -84,13 +88,13 @@
             <hr class="my-3" />
 
             <p class="text-muted small fw-semibold mb-1">Signos vitales</p>
-            <p class="small mb-3">@Model.ConsultaSignosVitales</p>
+            <p class="small mb-3">@(string.IsNullOrWhiteSpace(Model.ConsultaSignosVitales) ? "—" : Model.ConsultaSignosVitales)</p>
 
             <p class="text-muted small fw-semibold mb-1">Notas clínicas</p>
-            <p class="small mb-3">@Model.ConsultaNotasClinicas</p>
+            <p class="small mb-3">@(string.IsNullOrWhiteSpace(Model.ConsultaNotasClinicas) ? "—" : Model.ConsultaNotasClinicas)</p>
 
             <p class="text-muted small fw-semibold mb-1">Plan de tratamiento</p>
-            <p class="small mb-0">@Model.ConsultaPlanTratamiento</p>
+            <p class="small mb-0">@(string.IsNullOrWhiteSpace(Model.ConsultaPlanTratamiento) ? "—" : Model.ConsultaPlanTratamiento)</p>
         </div>
     </div>
 
@@ -98,13 +102,35 @@
     <div class="col-lg-9">
         <div class="d-flex flex-column gap-3">
 
+            @if (tieneFactura)
+            {
+                <div class="alert alert-success border rounded-4 shadow-sm mb-0">
+                    <div class="d-flex align-items-start gap-3">
+                        <div style="width:42px;height:42px;border-radius:50%;background:#d1fae5;color:#1a5c38;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
+                            🧾
+                        </div>
+                        <div>
+                            <h3 class="h6 fw-bold mb-1" style="color:#1a5c38;">
+                                Factura enviada a Corte de Caja
+                            </h3>
+                            <p class="small mb-0">
+                                Esta consulta ya generó una factura pendiente de cobro. El médico no debe registrar el pago.
+                                El cobro debe realizarlo Contabilidad/Caja desde
+                                <strong>Corte de Caja → Facturas pendientes de cobrar</strong>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
+
             <!-- ── Diagnósticos ── -->
             <div class="bg-white border rounded-4 shadow-sm p-4">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <h3 class="h6 fw-semibold mb-0" style="color:#1a5c38;">🩺 Diagnósticos</h3>
-                    @if (facturaId == null)
+
+                    @if (!tieneFactura)
                     {
-                        <button class="btn btn-sm btn-outline-success"
+                        <button type="button" class="btn btn-sm btn-outline-success"
                                 onclick="toggleSeccion('formDiagnostico')">
                             + Agregar diagnóstico
                         </button>
@@ -122,21 +148,23 @@
                                     @d.Diagnostico.DiagnosticoCodigo
                                 </span>
                                 <span class="small text-muted">@d.Diagnostico.DiagnosticoNombre</span>
+
                                 @if (d.EsPrincipal)
                                 {
                                     <span class="badge bg-success-subtle text-success"
                                           style="font-size:.65rem;">Principal</span>
                                 }
-                                @if (facturaId == null)
+
+                                @if (!tieneFactura)
                                 {
                                     <form asp-action="EliminarDiagnostico" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="consultaDiagnosticoId"
-                                               value="@d.ConsultaDiagnosticoId" />
-                                        <input type="hidden" name="consultaId"
-                                               value="@Model.ConsultaId" />
+                                        <input type="hidden" name="consultaDiagnosticoId" value="@d.ConsultaDiagnosticoId" />
+                                        <input type="hidden" name="consultaId" value="@Model.ConsultaId" />
                                         <button type="submit" class="btn-close"
-                                                style="font-size:.6rem;"></button>
+                                                style="font-size:.6rem;"
+                                                title="Eliminar diagnóstico"
+                                                onclick="return confirm('¿Eliminar este diagnóstico?');"></button>
                                     </form>
                                 }
                             </div>
@@ -148,54 +176,60 @@
                     <p class="text-muted small mb-3">Sin diagnósticos registrados.</p>
                 }
 
-                <div id="formDiagnostico" style="display:none;">
-                    <form asp-action="AgregarDiagnostico" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="ConsultaId" value="@Model.ConsultaId" />
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-5 position-relative">
-                                <label class="form-label small">Buscar diagnóstico (CIE-10)</label>
-                                <input type="text" id="buscarDiagnostico"
-                                       class="form-control form-control-sm"
-                                       placeholder="Código o nombre..." autocomplete="off" />
-                                <input type="hidden" name="DiagnosticoId"
-                                       id="diagnosticoIdSeleccionado" />
-                                <div id="resultadosDiagnostico"
-                                     style="display:none;position:absolute;z-index:1050;
-                                            background:#fff;border:1.5px solid #d4e4da;
-                                            border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);
-                                            max-height:200px;overflow-y:auto;width:100%;">
+                @if (!tieneFactura)
+                {
+                    <div id="formDiagnostico" style="display:none;">
+                        <form asp-action="AgregarDiagnostico" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="ConsultaId" value="@Model.ConsultaId" />
+
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-5 position-relative">
+                                    <label class="form-label small">Buscar diagnóstico (CIE-10)</label>
+                                    <input type="text" id="buscarDiagnostico"
+                                           class="form-control form-control-sm"
+                                           placeholder="Código o nombre..." autocomplete="off" />
+                                    <input type="hidden" name="DiagnosticoId" id="diagnosticoIdSeleccionado" />
+                                    <div id="resultadosDiagnostico"
+                                         style="display:none;position:absolute;z-index:1050;
+                                                    background:#fff;border:1.5px solid #d4e4da;
+                                                    border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);
+                                                    max-height:200px;overflow-y:auto;width:100%;">
+                                    </div>
+                                    <div id="diagSeleccionadoBadge"
+                                         style="display:none;background:#f0faf4;color:#1a5c38;"
+                                         class="mt-1 px-2 py-1 rounded-3 small fw-semibold"></div>
                                 </div>
-                                <div id="diagSeleccionadoBadge" style="display:none;"
-                                     class="mt-1 px-2 py-1 rounded-3 small fw-semibold"
-                                     style="background:#f0faf4;color:#1a5c38;"></div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label small">Tipo</label>
+                                    <select name="EsPrincipal" class="form-select form-select-sm">
+                                        <option value="false">Secundario</option>
+                                        <option value="true">Principal</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-auto">
+                                    <button type="submit" class="btn btn-success btn-sm">Agregar</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            onclick="toggleSeccion('formDiagnostico')">
+                                        Cancelar
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label small">Tipo</label>
-                                <select name="EsPrincipal" class="form-select form-select-sm">
-                                    <option value="false">Secundario</option>
-                                    <option value="true">Principal</option>
-                                </select>
-                            </div>
-                            <div class="col-md-auto">
-                                <button type="submit" class="btn btn-success btn-sm">Agregar</button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm"
-                                        onclick="toggleSeccion('formDiagnostico')">
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                        </form>
+                    </div>
+                }
             </div>
 
             <!-- ── Receta médica ── -->
             <div class="bg-white border rounded-4 shadow-sm p-4">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <h3 class="h6 fw-semibold mb-0" style="color:#1a5c38;">💊 Receta médica</h3>
-                    @if (facturaId == null)
+
+                    @if (!tieneFactura)
                     {
-                        <button class="btn btn-sm btn-outline-success"
+                        <button type="button" class="btn btn-sm btn-outline-success"
                                 onclick="toggleSeccion('seccionReceta')">
                             + Nueva receta
                         </button>
@@ -214,6 +248,7 @@
                                     <span> — @r.RecetaObservaciones</span>
                                 }
                             </p>
+
                             @foreach (var rd in r.RecetaDetalles)
                             {
                                 <div class="d-flex align-items-start gap-2 mb-1 small">
@@ -221,7 +256,9 @@
                                         @rd.Medicamento.MedicamentoNombre
                                     </span>
                                     <span class="text-muted">
-                                        @rd.Dosis — @rd.Frecuencia — @rd.Duracion
+                                        @(string.IsNullOrWhiteSpace(rd.Dosis) ? "Sin dosis" : rd.Dosis)
+                                        — @(string.IsNullOrWhiteSpace(rd.Frecuencia) ? "Sin frecuencia" : rd.Frecuencia)
+                                        — @(string.IsNullOrWhiteSpace(rd.Duracion) ? "Sin duración" : rd.Duracion)
                                         @if (!string.IsNullOrWhiteSpace(rd.Indicaciones))
                                         {
                                             <em> (@rd.Indicaciones)</em>
@@ -237,39 +274,50 @@
                     <p class="text-muted small mb-3">Sin recetas generadas.</p>
                 }
 
-                <div id="seccionReceta" style="display:none;">
-                    <form asp-action="GenerarReceta" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="ConsultaId" value="@Model.ConsultaId" />
-                        <div class="mb-2">
-                            <input name="RecetaObservaciones" class="form-control form-control-sm"
-                                   placeholder="Observaciones generales (opcional)" />
-                        </div>
-                        <div id="contenedorMedicamentos"></div>
-                        <div class="alert alert-light border text-center text-muted small"
-                             id="avisoMedicamentos">
-                            Clic en "+ Medicamento" para agregar
-                        </div>
-                        <div class="d-flex gap-2 mt-2">
-                            <button type="button" class="btn btn-outline-success btn-sm"
-                                    onclick="agregarMedicamento()">
-                                + Medicamento
-                            </button>
-                            <button type="submit" class="btn btn-success btn-sm">
-                                Guardar receta
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                @if (!tieneFactura)
+                {
+                    <div id="seccionReceta" style="display:none;">
+                        <form asp-action="GenerarReceta" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="ConsultaId" value="@Model.ConsultaId" />
+
+                            <div class="mb-2">
+                                <input name="RecetaObservaciones" class="form-control form-control-sm"
+                                       placeholder="Observaciones generales (opcional)" />
+                            </div>
+
+                            <div id="contenedorMedicamentos"></div>
+
+                            <div class="alert alert-light border text-center text-muted small" id="avisoMedicamentos">
+                                Clic en "+ Medicamento" para agregar
+                            </div>
+
+                            <div class="d-flex gap-2 mt-2">
+                                <button type="button" class="btn btn-outline-success btn-sm"
+                                        onclick="agregarMedicamento()">
+                                    + Medicamento
+                                </button>
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    Guardar receta
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        onclick="toggleSeccion('seccionReceta')">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                }
             </div>
 
             <!-- ── Órdenes de examen ── -->
             <div class="bg-white border rounded-4 shadow-sm p-4">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <h3 class="h6 fw-semibold mb-0" style="color:#1a5c38;">🔬 Órdenes de examen</h3>
-                    @if (facturaId == null)
+
+                    @if (!tieneFactura)
                     {
-                        <button class="btn btn-sm btn-outline-success"
+                        <button type="button" class="btn btn-sm btn-outline-success"
                                 onclick="toggleSeccion('seccionOrden')">
                             + Nueva orden
                         </button>
@@ -280,8 +328,7 @@
                 {
                     @foreach (var o in ordenes)
                     {
-                        <div class="d-flex align-items-center justify-content-between
-                                            border rounded-3 px-3 py-2 mb-2"
+                        <div class="d-flex align-items-center justify-content-between border rounded-3 px-3 py-2 mb-2"
                              style="background:#f8fdfb;">
                             <div>
                                 <span class="small fw-semibold" style="color:#1a5c38;">
@@ -291,19 +338,17 @@
                                     @o.OrdenFecha.ToString("dd/MM/yyyy")
                                 </span>
                             </div>
+
                             @switch (o.OrdenEstado)
                             {
                                 case CIVS.Models.EstadoOrdenExamen.Solicitado:
-                                    <span class="badge bg-warning-subtle text-warning
-                                                                 border border-warning-subtle small">Solicitado</span>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">Solicitado</span>
                                     break;
                                 case CIVS.Models.EstadoOrdenExamen.Entregado:
-                                    <span class="badge bg-success-subtle text-success
-                                                                 border border-success-subtle small">Entregado</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small">Entregado</span>
                                     break;
                                 default:
-                                    <span class="badge bg-info-subtle text-info
-                                                                 border border-info-subtle small">@o.OrdenEstado</span>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle small">@o.OrdenEstado</span>
                                     break;
                             }
                         </div>
@@ -314,42 +359,54 @@
                     <p class="text-muted small mb-3">Sin órdenes generadas.</p>
                 }
 
-                <div id="seccionOrden" style="display:none;">
-                    <form asp-action="GenerarOrden" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="ConsultaId" value="@Model.ConsultaId" />
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-4">
-                                <label class="form-label small">Tipo de examen</label>
-                                <select name="ExamenId" asp-items="ViewBag.Examenes"
-                                        class="form-select form-select-sm" required>
-                                    <option value="">-- Seleccionar --</option>
-                                </select>
+                @if (!tieneFactura)
+                {
+                    <div id="seccionOrden" style="display:none;">
+                        <form asp-action="GenerarOrden" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="ConsultaId" value="@Model.ConsultaId" />
+
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label small">Tipo de examen</label>
+                                    <select name="ExamenId" asp-items="ViewBag.Examenes"
+                                            class="form-select form-select-sm" required>
+                                        <option value="">-- Seleccionar --</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-5">
+                                    <label class="form-label small">Observaciones</label>
+                                    <input name="Observaciones" class="form-control form-control-sm"
+                                           placeholder="Indicaciones especiales..." />
+                                </div>
+
+                                <div class="col-md-auto">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        Generar orden
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            onclick="toggleSeccion('seccionOrden')">
+                                        Cancelar
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-md-5">
-                                <label class="form-label small">Observaciones</label>
-                                <input name="Observaciones" class="form-control form-control-sm"
-                                       placeholder="Indicaciones especiales..." />
-                            </div>
-                            <div class="col-md-auto">
-                                <button type="submit" class="btn btn-success btn-sm">
-                                    Generar orden
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                        </form>
+                    </div>
+                }
             </div>
 
             <!-- ── Cita de seguimiento ── -->
             <div class="bg-white border rounded-4 shadow-sm p-4">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <h3 class="h6 fw-semibold mb-0" style="color:#1a5c38;">📅 Cita de seguimiento</h3>
-                    <button class="btn btn-sm btn-outline-success"
+
+                    <button type="button" class="btn btn-sm btn-outline-success"
                             onclick="toggleSeccion('seccionSeguimiento')">
                         + Agendar seguimiento
                     </button>
                 </div>
+
                 <p class="text-muted small mb-0">
                     Agendá una nueva cita de seguimiento para este paciente.
                 </p>
@@ -358,8 +415,8 @@
                     <form asp-action="AgendarSeguimiento" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="ConsultaId" value="@Model.ConsultaId" />
-                        <input type="hidden" name="PacienteId"
-                               value="@Model.Cita.PacienteId" />
+                        <input type="hidden" name="PacienteId" value="@Model.Cita.PacienteId" />
+
                         <div class="row g-2">
                             <div class="col-md-4">
                                 <label class="form-label small">Médico</label>
@@ -368,25 +425,33 @@
                                     <option value="">-- Seleccionar --</option>
                                 </select>
                             </div>
+
                             <div class="col-md-3">
                                 <label class="form-label small">Fecha y hora inicio</label>
                                 <input type="datetime-local" name="FechaInicio"
                                        class="form-control form-control-sm" required />
                             </div>
+
                             <div class="col-md-3">
                                 <label class="form-label small">Fecha y hora fin</label>
                                 <input type="datetime-local" name="FechaFin"
                                        class="form-control form-control-sm" required />
                             </div>
+
                             <div class="col-md-8">
                                 <label class="form-label small">Motivo</label>
                                 <input name="Motivo" class="form-control form-control-sm"
-                                       placeholder="Ej. Seguimiento gripe, Revisión resultados..."
+                                       placeholder="Ej. Seguimiento gripe, revisión de resultados..."
                                        required />
                             </div>
-                            <div class="col-md-auto d-flex align-items-end">
+
+                            <div class="col-md-auto d-flex align-items-end gap-2">
                                 <button type="submit" class="btn btn-success btn-sm">
                                     Agendar
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        onclick="toggleSeccion('seccionSeguimiento')">
+                                    Cancelar
                                 </button>
                             </div>
                         </div>
@@ -394,43 +459,43 @@
                 </div>
             </div>
 
-            <!-- ── Finalizar y cobrar ── -->
+            <!-- ── Finalizar y enviar a caja ── -->
             <div class="bg-white border rounded-4 shadow-sm p-4">
-                @if (facturaId != null)
+                @if (tieneFactura)
                 {
-                    <!-- Ya tiene factura → ir al pago -->
-                    <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div>
                             <h3 class="h6 fw-semibold mb-1" style="color:#1a5c38;">
-                                🧾 Factura generada
+                                🧾 Factura pendiente en caja
                             </h3>
                             <p class="text-muted small mb-0">
-                                Esta consulta ya tiene una factura. Podés ir al pago.
+                                La factura de esta consulta ya fue generada. El cobro debe realizarse desde el módulo de Corte de Caja.
                             </p>
                         </div>
-                        <a asp-action="Pago" asp-route-id="@facturaId"
-                           class="btn btn-primary">
-                            Ir al pago →
+
+                        <a asp-controller="Cita" asp-action="Index" class="btn btn-outline-success">
+                            Volver a agenda
                         </a>
                     </div>
                 }
                 else
                 {
-                    <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div>
                             <h3 class="h6 fw-semibold mb-1" style="color:#1a5c38;">
                                 🧾 Finalizar consulta
                             </h3>
                             <p class="text-muted small mb-0">
-                                Generá la factura con todos los servicios de esta consulta.
+                                Generá la factura con la consulta, órdenes y medicamentos. La factura quedará pendiente para Contabilidad/Caja.
                             </p>
                         </div>
+
                         <form asp-action="FinalizarYCobrar" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="ConsultaId" value="@Model.ConsultaId" />
                             <button type="submit" class="btn btn-primary"
-                                    onclick="return confirm('¿Finalizar la consulta y generar factura?')">
-                                Finalizar y cobrar →
+                                    onclick="return confirm('¿Finalizar la consulta y enviar la factura a Corte de Caja?');">
+                                Finalizar consulta y enviar a caja →
                             </button>
                         </form>
                     </div>
@@ -449,57 +514,68 @@
 
         function toggleSeccion(id) {
             const el = document.getElementById(id);
+            if (!el) return;
             el.style.display = el.style.display === 'none' ? 'block' : 'none';
         }
 
         // ── Buscador diagnóstico ──────────────────────────────────────────────
         document.getElementById('buscarDiagnostico')
-                ?.addEventListener('input', function () {
-            const q   = this.value.trim().toLowerCase();
-            const res = document.getElementById('resultadosDiagnostico');
-            if (q.length < 2) { res.style.display = 'none'; return; }
+            ?.addEventListener('input', function () {
+                const q = this.value.trim().toLowerCase();
+                const res = document.getElementById('resultadosDiagnostico');
 
-            const filtrados = diagnosticosData
-                .filter(d => d.codigo.toLowerCase().includes(q) ||
-                             d.nombre.toLowerCase().includes(q))
-                .slice(0, 8);
+                if (!res) return;
 
-            if (!filtrados.length) {
-                res.innerHTML = `<div class="px-3 py-2 text-muted small">Sin resultados</div>`;
-            } else {
-                res.innerHTML = filtrados.map(d => `
-                    <div class="px-3 py-2 small"
-                         style="cursor:pointer;border-bottom:1px solid #f0f4f2;"
-                         onmouseenter="this.style.background='#f0faf4'"
-                         onmouseleave="this.style.background=''"
-                         onclick="seleccionarDiag(${d.id},'${d.codigo}',
-                                  '${d.nombre.replace(/'/g,"\\'")}')">
-                        <span class="fw-semibold" style="color:#1a5c38;">${d.codigo}</span>
-                        <span class="text-muted ms-2">${d.nombre}</span>
-                    </div>`).join('');
-            }
-            res.style.display = 'block';
-        });
+                if (q.length < 2) {
+                    res.style.display = 'none';
+                    return;
+                }
+
+                const filtrados = diagnosticosData
+                    .filter(d =>
+                        d.codigo.toLowerCase().includes(q) ||
+                        d.nombre.toLowerCase().includes(q))
+                    .slice(0, 8);
+
+                if (!filtrados.length) {
+                    res.innerHTML = `<div class="px-3 py-2 text-muted small">Sin resultados</div>`;
+                } else {
+                    res.innerHTML = filtrados.map(d => `
+                        <div class="px-3 py-2 small"
+                             style="cursor:pointer;border-bottom:1px solid #f0f4f2;"
+                             onmouseenter="this.style.background='#f0faf4'"
+                             onmouseleave="this.style.background=''"
+                             onclick="seleccionarDiag(${d.id}, '${escapeHtml(d.codigo)}', '${escapeHtml(d.nombre)}')">
+                            <span class="fw-semibold" style="color:#1a5c38;">${escapeHtml(d.codigo)}</span>
+                            <span class="text-muted ms-2">${escapeHtml(d.nombre)}</span>
+                        </div>`).join('');
+                }
+
+                res.style.display = 'block';
+            });
 
         function seleccionarDiag(id, codigo, nombre) {
             document.getElementById('diagnosticoIdSeleccionado').value = id;
             document.getElementById('buscarDiagnostico').style.display = 'none';
             document.getElementById('resultadosDiagnostico').style.display = 'none';
+
             const badge = document.getElementById('diagSeleccionadoBadge');
-            badge.textContent    = `${codigo} — ${nombre}`;
-            badge.style.display  = 'block';
-            badge.style.background = '#f0faf4';
-            badge.style.color      = '#1a5c38';
+            badge.textContent = `${codigo} — ${nombre}`;
+            badge.style.display = 'block';
         }
 
         // ── Agregar línea de medicamento ──────────────────────────────────────
         function agregarMedicamento() {
-            document.getElementById('avisoMedicamentos').style.display = 'none';
+            const aviso = document.getElementById('avisoMedicamentos');
             const contenedor = document.getElementById('contenedorMedicamentos');
-            const opciones   = medicamentosData.map(m =>
-                `<option value="${m.id}">${m.nombre}
-                 ${m.presentacion ? '— ' + m.presentacion : ''}
-                 ${m.concentracion ? m.concentracion : ''}</option>`
+
+            if (aviso) aviso.style.display = 'none';
+            if (!contenedor) return;
+
+            const opciones = medicamentosData.map(m =>
+                `<option value="${m.id}">${escapeHtml(m.nombre)}
+                 ${m.presentacion ? '— ' + escapeHtml(m.presentacion) : ''}
+                 ${m.concentracion ? escapeHtml(m.concentracion) : ''}</option>`
             ).join('');
 
             const div = document.createElement('div');
@@ -507,7 +583,7 @@
             div.innerHTML = `
                 <button type="button" class="btn-close position-absolute top-0 end-0 m-1"
                         style="font-size:.6rem;"
-                        onclick="this.parentElement.remove()"></button>
+                        onclick="eliminarMedicamento(this)"></button>
                 <div class="row g-2">
                     <div class="col-md-4">
                         <select name="MedicamentoId" class="form-select form-select-sm" required>
@@ -515,30 +591,56 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <input name="Dosis" class="form-control form-control-sm"
-                               placeholder="Dosis" />
+                        <input name="Dosis" class="form-control form-control-sm" placeholder="Dosis" />
                     </div>
                     <div class="col-md-2">
-                        <input name="Frecuencia" class="form-control form-control-sm"
-                               placeholder="Frecuencia" />
+                        <input name="Frecuencia" class="form-control form-control-sm" placeholder="Frecuencia" />
                     </div>
                     <div class="col-md-2">
-                        <input name="Duracion" class="form-control form-control-sm"
-                               placeholder="Duración" />
+                        <input name="Duracion" class="form-control form-control-sm" placeholder="Duración" />
                     </div>
                     <div class="col-md-2">
-                        <input name="Indicaciones" class="form-control form-control-sm"
-                               placeholder="Indicaciones" />
+                        <input name="Indicaciones" class="form-control form-control-sm" placeholder="Indicaciones" />
                     </div>
                 </div>`;
+
             contenedor.appendChild(div);
             indiceMed++;
         }
 
-        // Auto-cerrar toasts
+        function eliminarMedicamento(btn) {
+            btn.parentElement.remove();
+
+            const contenedor = document.getElementById('contenedorMedicamentos');
+            const aviso = document.getElementById('avisoMedicamentos');
+
+            if (contenedor && aviso && contenedor.children.length === 0) {
+                aviso.style.display = 'block';
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Cerrar dropdown diagnóstico al hacer clic fuera
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('#buscarDiagnostico') &&
+                !e.target.closest('#resultadosDiagnostico')) {
+                const res = document.getElementById('resultadosDiagnostico');
+                if (res) res.style.display = 'none';
+            }
+        });
+
+        // Auto-cerrar alertas
         setTimeout(() => {
             document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
-                    .forEach(a => bootstrap.Alert.getOrCreateInstance(a)?.close());
+                .forEach(a => bootstrap.Alert.getOrCreateInstance(a)?.close());
         }, 4000);
     </script>
 }

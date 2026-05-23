@@ -350,27 +350,37 @@ namespace CIVS.Controllers
         }
 
         // ── POST: /Consulta/FinalizarYCobrar ─────────────────────────────────
-        // Genera la factura y redirige a la pantalla de pago
+        // Genera factura pendiente para Corte de Caja
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador,Medico,Cajero")]
+        [Authorize(Roles = "Administrador,Medico")]
         public async Task<IActionResult> FinalizarYCobrar(int ConsultaId)
         {
             var consulta = await _context.Consultas
                 .Include(c => c.Cita)
+                    .ThenInclude(ci => ci.Paciente)
                 .FirstOrDefaultAsync(c => c.ConsultaId == ConsultaId);
 
-            if (consulta == null) return NotFound();
+            if (consulta == null)
+                return NotFound();
 
-            // Si ya tiene factura → ir directo al pago
             var facturaExistente = await _context.Facturas
                 .FirstOrDefaultAsync(f => f.CitaId == consulta.CitaId);
 
             if (facturaExistente != null)
-                return RedirectToAction(nameof(Pago),
-                    new { id = facturaExistente.FacturaId });
+            {
+                if (facturaExistente.FacturaEstado == EstadoFactura.Pagada)
+                {
+                    TempData["Success"] = "La consulta ya tiene una factura pagada.";
+                }
+                else
+                {
+                    TempData["Success"] = "La factura ya fue enviada a Corte de Caja y está pendiente de cobro.";
+                }
 
-            // Calcular ítems
+                return RedirectToAction(nameof(Detalle), new { id = ConsultaId });
+            }
+
             var ordenes = await _context.OrdenExamenes
                 .Include(o => o.Examen)
                 .Where(o => o.ConsultaId == ConsultaId)
@@ -400,6 +410,7 @@ namespace CIVS.Controllers
             foreach (var o in ordenes)
             {
                 var precio = o.Examen.ExamenPrecio ?? 0;
+
                 detalles.Add(new FacturaDetalle
                 {
                     ExamenId = o.ExamenId,
@@ -409,6 +420,7 @@ namespace CIVS.Controllers
                     DetalleDescuento = 0,
                     DetalleTotalLinea = precio
                 });
+
                 subtotal += precio;
             }
 
@@ -416,6 +428,7 @@ namespace CIVS.Controllers
             foreach (var rd in recetaDetalles)
             {
                 var precio = rd.Medicamento.MedicamentoPrecio ?? 0;
+
                 detalles.Add(new FacturaDetalle
                 {
                     MedicamentoId = rd.MedicamentoId,
@@ -425,6 +438,7 @@ namespace CIVS.Controllers
                     DetalleDescuento = 0,
                     DetalleTotalLinea = precio
                 });
+
                 subtotal += precio;
             }
 
@@ -435,13 +449,16 @@ namespace CIVS.Controllers
                 FacturaNumero = $"FAC-{correlativo:D6}",
                 PacienteId = consulta.Cita.PacienteId,
                 CitaId = consulta.CitaId,
-                FacturaFecha = DateTime.UtcNow,
+                FacturaFecha = DateTime.Now,
                 FacturaSubtotal = subtotal,
                 FacturaDescuento = 0,
                 FacturaImpuesto = 0,
                 FacturaTotal = subtotal,
+
+                // IMPORTANTE: queda pendiente para Corte de Caja
                 FacturaEstado = EstadoFactura.Emitida,
-                FacturaFechaRegistro = DateTime.UtcNow
+
+                FacturaFechaRegistro = DateTime.Now
             };
 
             _context.Facturas.Add(factura);
@@ -455,11 +472,14 @@ namespace CIVS.Controllers
 
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Pago), new { id = factura.FacturaId });
+            TempData["Success"] =
+                $"Consulta finalizada. La factura {factura.FacturaNumero} fue enviada a Corte de Caja como pendiente de cobro.";
+
+            return RedirectToAction(nameof(Detalle), new { id = ConsultaId });
         }
 
         // ── GET: /Consulta/Pago/5 ─────────────────────────────────────────────
-        [Authorize(Roles = "Administrador,Medico,Cajero")]
+        [Authorize(Roles = "Administrador,Contabilidad")]
         public async Task<IActionResult> Pago(int id)
         {
             var factura = await _context.Facturas
@@ -476,7 +496,7 @@ namespace CIVS.Controllers
         // ── POST: /Consulta/RegistrarPago ─────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador,Medico,Cajero")]
+        [Authorize(Roles = "Administrador,Contabilidad")]
         public async Task<IActionResult> RegistrarPago(int FacturaId)
         {
             var factura = await _context.Facturas
@@ -502,7 +522,7 @@ namespace CIVS.Controllers
         }
 
         // ── GET: /Consulta/PagoCompletado/5 ──────────────────────────────────
-        [Authorize(Roles = "Administrador,Medico,Cajero")]
+        [Authorize(Roles = "Administrador,Contabilidad")]
         public async Task<IActionResult> PagoCompletado(int id)
         {
             var factura = await _context.Facturas

@@ -30,28 +30,31 @@ namespace CIVS.Controllers
         }
 
         // ── GET: /Admin/Usuarios ─────────────────────────────────────────────
-        public async Task<IActionResult> Usuarios(string? q)
+        // ── GET: /Admin/Usuarios ─────────────────────────────────────────────
+        public async Task<IActionResult> Usuarios(int? rolId)
         {
             var query = _context.Usuarios
                 .Include(u => u.UsuarioRoles)
                     .ThenInclude(ur => ur.Rol)
                 .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(q))
+            // Filtro por rol
+            if (rolId.HasValue && rolId.Value > 0)
             {
-                q = q.Trim();
                 query = query.Where(u =>
-                    u.UsuarioUsername.Contains(q) ||
-                    u.UsuarioEmail.Contains(q) ||
-                    (u.UsuarioNombres != null && u.UsuarioNombres.Contains(q)) ||
-                    (u.UsuarioApellidos != null && u.UsuarioApellidos.Contains(q)));
+                    u.UsuarioRoles.Any(ur =>
+                        ur.RolId == rolId.Value &&
+                        ur.UsuarioRolEstado));
             }
 
             var usuarios = await query
                 .OrderByDescending(u => u.UsuarioFechaRegistro)
                 .ToListAsync();
 
-            ViewBag.Q = q;
+            await CargarRolesFiltro(rolId);
+
+            ViewBag.RolId = rolId;
+
             return View(usuarios);
         }
 
@@ -67,16 +70,16 @@ namespace CIVS.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearUsuario(
-    string UsuarioUsername,
-    string UsuarioEmail,
-    string UsuarioPassword,
-    string? UsuarioNombres,
-    string? UsuarioApellidos,
-    int RolId,
-    // Datos extra si es Médico
-    int? EspecialidadId,
-    string? MedicoColegiado,
-    string? MedicoTelefono)
+            string UsuarioUsername,
+            string UsuarioEmail,
+            string UsuarioPassword,
+            string? UsuarioNombres,
+            string? UsuarioApellidos,
+            int RolId,
+            // Datos extra si es Médico
+            int? EspecialidadId,
+            string? MedicoColegiado,
+            string? MedicoTelefono)
         {
             if (await _context.Usuarios.AnyAsync(u => u.UsuarioUsername == UsuarioUsername))
                 ModelState.AddModelError("UsuarioUsername",
@@ -248,6 +251,20 @@ namespace CIVS.Controllers
                 .ToListAsync();
 
             ViewBag.Roles = new SelectList(
+                roles,
+                nameof(Rol.RolId),
+                nameof(Rol.RolNombre),
+                seleccionado);
+        }
+
+        private async Task CargarRolesFiltro(int? seleccionado = null)
+        {
+            var roles = await _context.Roles
+                .Where(r => r.RolEstado)
+                .OrderBy(r => r.RolNombre)
+                .ToListAsync();
+
+            ViewBag.RolesFiltro = new SelectList(
                 roles,
                 nameof(Rol.RolId),
                 nameof(Rol.RolNombre),

@@ -6,11 +6,6 @@ using System.Security.Claims;
 
 namespace CIVS.Middleware
 {
-    /// <summary>
-    /// Middleware que valida el token de sesión en cada petición.
-    /// Si el token no coincide con el almacenado en BD o ha expirado, 
-    /// cierra la sesión automáticamente.
-    /// </summary>
     public class SessionTokenValidationMiddleware
     {
         private readonly RequestDelegate _next;
@@ -20,52 +15,107 @@ namespace CIVS.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, AppDbContext dbContext)
+        public async Task InvokeAsync(HttpContext context, AppDbContext db)
         {
-            // Solo validar si el usuario está autenticado
-            if (context.User.Identity?.IsAuthenticated == true)
+            var path = context.Request.Path;
+
+            // No validar rutas públicas ni archivos estáticos
+            if (path.StartsWithSegments("/Auth") ||
+                path.StartsWithSegments("/css") ||
+                path.StartsWithSegments("/js") ||
+                path.StartsWithSegments("/lib") ||
+                path.StartsWithSegments("/images") ||
+                path.StartsWithSegments("/favicon.ico"))
             {
-                var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-                var sessionTokenClaim = context.User.FindFirst("SessionToken");
+                await _next(context);
+                return;
+            }
 
-                if (userIdClaim != null && sessionTokenClaim != null)
-                {
-                    if (int.TryParse(userIdClaim.Value, out int userId))
-                    {
-                        var usuario = await dbContext.Usuarios
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync(u => u.UsuarioId == userId);
+            // Si no hay usuario autenticado, dejar seguir normal
+            if (context.User.Identity?.IsAuthenticated != true)
+            {
+                await _next(context);
+                return;
+            }
 
-                        // Validar que el token coincida y no haya expirado
-                        bool tokenInvalido = usuario == null ||
-                            usuario.SessionToken != sessionTokenClaim.Value ||
-                            usuario.SessionTokenExpiry == null ||
-                            usuario.SessionTokenExpiry < DateTime.UtcNow;
+            var userIdClaim = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var sessionTokenClaim = context.User.FindFirstValue("SessionToken");
 
-                        if (tokenInvalido)
-                        {
-                            // Cerrar sesión y redirigir al login
-                            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                            context.Response.Redirect("/Auth/Login?sesionInvalida=true");
-                            return;
-                        }
-                    }
-                }
+            // Si la cookie está corrupta o incompleta, cerrar sesión y volver al login
+            if (string.IsNullOrWhiteSpace(userIdClaim) ||
+                string.IsNullOrWhiteSpace(sessionTokenClaim) ||
+                !int.TryParse(userIdClaim, out int usuarioId))
+            {
+                await CerrarSesionYRedirigir(context);
+                return;
+            }
+
+            var usuario = await db.Usuarios
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UsuarioId == usuarioId);
+
+            // Si el usuario ya no existe o está inactivo
+            if (usuario == null || !usuario.UsuarioEstado)
+            {
+                await CerrarSesionYRedirigir(context);
+                return;
+            }
+
+            // Si el token de sesión no existe en BD
+            if (string.IsNullOrWhiteSpace(usuario.SessionToken) ||
+                usuario.SessionTokenExpiry == null)
+            {
+                await CerrarSesionYRedirigir(context);
+                return;
+            }
+
+            // Si el token no coincide con el de la cookie
+            if (usuario.SessionToken != sessionTokenClaim)
+            {
+                await CerrarSesionYRedirigir(context);
+                return;
+            }
+
+            // Si la sesión expiró
+            if (usuario.SessionTokenExpiry <= DateTime.UtcNow)
+            {
+                await CerrarSesionYRedirigir(context);
+                return;
             }
 
             await _next(context);
         }
+
+        private static async Task CerrarSesionYRedirigir(HttpContext context)
+        {
+            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            if (EsAjax(context.Request))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    ok = false,
+                    mensaje = "La sesión expiró. Inicie sesión nuevamente."
+                });
+
+                return;
+            }
+
+            context.Response.Redirect("/Auth/Login");
+        }
+
+        private static bool EsAjax(HttpRequest request)
+        {
+            return request.Headers["X-Requested-With"] == "XMLHttpRequest";
+        }
     }
 
-    /// <summary>
-    /// Extension method para facilitar el registro del middleware
-    /// </summary>
     public static class SessionTokenValidationMiddlewareExtensions
     {
-        public static IApplicationBuilder UseSessionTokenValidation(
-            this IApplicationBuilder builder)
+        public static IApplicationBuilder UseSessionTokenValidation(this IApplicationBuilder app)
         {
-            return builder.UseMiddleware<SessionTokenValidationMiddleware>();
+            return app.UseMiddleware<SessionTokenValidationMiddleware>();
         }
     }
 }

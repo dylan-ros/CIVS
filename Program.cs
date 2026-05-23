@@ -5,29 +5,42 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── MVC ───────────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
 
-// ── Entity Framework Core ─────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ── Autenticación por cookies ─────────────────────────────────────────────
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.Name = ".CIVS7173.Antiforgery";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Auth/Login";
+        options.LogoutPath = "/Auth/Logout";
         options.AccessDeniedPath = "/Auth/AccesoDenegado";
-        options.Cookie.Name = "CIVS.Auth";
+
+        options.Cookie.Name = ".CIVS7173.Auth";
         options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
-        options.SlidingExpiration = true;
+        options.SlidingExpiration = false;
     });
 
 var app = builder.Build();
 
-// ── Pipeline ──────────────────────────────────────────────────────────────
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
@@ -35,19 +48,17 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
 
-// IMPORTANTE: Authentication ANTES que Authorization
 app.UseAuthentication();
 
-// ── Validación de token de sesión (después de autenticación) ─────────
 app.UseSessionTokenValidation();
 
 app.UseAuthorization();
 
-// Login como página de inicio
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Auth}/{action=Login}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

@@ -28,19 +28,38 @@ namespace CIVS.Controllers
 
             if (!string.IsNullOrWhiteSpace(q))
             {
-                q = q.Trim();
-                query = query.Where(o =>
-                    o.Examen.ExamenNombre.Contains(q) ||
-                    o.Consulta.Cita.Paciente.PacienteNombres.Contains(q) ||
-                    o.Consulta.Cita.Paciente.PacienteApellido.Contains(q) ||
-                    (o.Consulta.Cita.Paciente.PacienteNombres + " " +
-                     o.Consulta.Cita.Paciente.PacienteApellido).Contains(q) ||
-                    o.Consulta.Cita.Paciente.PacienteDPI.Contains(q));
+                var texto = q.Trim();
+
+                var palabras = texto.Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+                );
+
+                foreach (var palabra in palabras)
+                {
+                    var termino = palabra;
+
+                    query = query.Where(o =>
+                        EF.Functions.Like(o.Examen.ExamenNombre ?? "", $"%{termino}%") ||
+
+                        EF.Functions.Like(o.Consulta.Cita.Paciente.PacienteNombres ?? "", $"%{termino}%") ||
+
+                        EF.Functions.Like(o.Consulta.Cita.Paciente.PacienteApellido ?? "", $"%{termino}%") ||
+
+                        EF.Functions.Like(
+                            ((o.Consulta.Cita.Paciente.PacienteNombres ?? "") + " " +
+                             (o.Consulta.Cita.Paciente.PacienteApellido ?? "")),
+                            $"%{termino}%"
+                        ) ||
+
+                        EF.Functions.Like(o.Consulta.Cita.Paciente.PacienteDPI ?? "", $"%{termino}%")
+                    );
+                }
             }
 
             var ordenes = await query
-               .OrderByDescending(o => o.OrdenFecha)
-               .ToListAsync();
+                .OrderByDescending(o => o.OrdenFecha)
+                .ToListAsync();
 
             ViewBag.Q = q;
             return View(ordenes);
@@ -58,20 +77,80 @@ namespace CIVS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearOrden(OrdenExamen orden)
         {
-            if (!ModelState.IsValid)
+            try
             {
+                // Limpiar navegación
+                orden.Consulta = null!;
+                orden.Examen = null!;
+                orden.OrdenDetalles = new List<OrdenExamenDetalle>();
+
+                // IMPORTANTE: quitar validaciones de propiedades de navegación
+                ModelState.Remove("Consulta");
+                ModelState.Remove("Examen");
+                ModelState.Remove("OrdenDetalles");
+
+                if (orden.ConsultaId == 0)
+                {
+                    ModelState.AddModelError("ConsultaId", "Debe seleccionar una consulta.");
+                }
+
+                if (orden.ExamenId == 0)
+                {
+                    ModelState.AddModelError("ExamenId", "Debe seleccionar un tipo de examen.");
+                }
+
+                if (orden.ConsultaId > 0)
+                {
+                    var consultaExiste = await _context.Consultas
+                        .AnyAsync(c => c.ConsultaId == orden.ConsultaId);
+
+                    if (!consultaExiste)
+                    {
+                        ModelState.AddModelError("ConsultaId", "La consulta seleccionada no existe.");
+                    }
+                }
+
+                if (orden.ExamenId > 0)
+                {
+                    var examenExiste = await _context.Examenes
+                        .AnyAsync(e => e.ExamenId == orden.ExamenId && e.ExamenEstado);
+
+                    if (!examenExiste)
+                    {
+                        ModelState.AddModelError("ExamenId", "El examen seleccionado no existe o está inactivo.");
+                    }
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    await CargarCombos(orden.ConsultaId, orden.ExamenId);
+                    TempData["Error"] = "Por favor corrige los errores en el formulario.";
+                    return View(orden);
+                }
+
+                orden.OrdenEstado = EstadoOrdenExamen.Solicitado;
+                orden.OrdenFecha = DateTime.Now;
+                orden.ResultadoFecha = null;
+
+                _context.OrdenExamenes.Add(orden);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"✅ Orden de examen #{orden.OrdenExamenId} creada exitosamente.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException ex)
+            {
+                var mensajeError = ex.InnerException?.Message ?? ex.Message;
+                TempData["Error"] = $"❌ Error de base de datos: {mensajeError}";
                 await CargarCombos(orden.ConsultaId, orden.ExamenId);
                 return View(orden);
             }
-
-            orden.OrdenEstado = EstadoOrdenExamen.Solicitado;
-            orden.OrdenFecha = DateTime.UtcNow;
-
-            _context.OrdenExamenes.Add(orden);
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Orden de examen creada exitosamente.";
-            return RedirectToAction(nameof(CrearOrden));
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"❌ Error inesperado: {ex.Message}";
+                await CargarCombos(orden.ConsultaId, orden.ExamenId);
+                return View(orden);
+            }
         }
 
         // ── GET: /Laboratorio/Detalle/5 ──────────────────────────────────────
@@ -238,7 +317,9 @@ namespace CIVS.Controllers
 
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Receta médica creada exitosamente.";
+            await CrearFacturaPendientePorRecetaAsync(receta.RecetaId);
+
+            TempData["Success"] = "Receta médica creada exitosamente. También se generó una factura pendiente en Corte de Caja.";
             return RedirectToAction(nameof(CrearReceta));
         }
 
@@ -279,6 +360,74 @@ namespace CIVS.Controllers
                 {
                     PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
                 });
+        }
+
+
+        private async Task CrearFacturaPendientePorRecetaAsync(int recetaId)
+        {
+            var receta = await _context.Recetas
+                .Include(r => r.Consulta)
+                    .ThenInclude(c => c.Cita)
+                        .ThenInclude(ci => ci.Paciente)
+                .Include(r => r.RecetaDetalles)
+                    .ThenInclude(rd => rd.Medicamento)
+                .FirstOrDefaultAsync(r => r.RecetaId == recetaId);
+
+            if (receta == null || receta.Consulta?.Cita == null)
+                return;
+
+            decimal subtotal = 0;
+            var detallesFactura = new List<FacturaDetalle>();
+
+            foreach (var detalle in receta.RecetaDetalles)
+            {
+                var medicamento = detalle.Medicamento;
+
+                if (medicamento == null)
+                    continue;
+
+                decimal precio = medicamento.MedicamentoPrecio ?? 0;
+                decimal totalLinea = precio;
+
+                subtotal += totalLinea;
+
+                detallesFactura.Add(new FacturaDetalle
+                {
+                    MedicamentoId = medicamento.MedicamentoId,
+                    DetalleDescripcion = $"{medicamento.MedicamentoNombre} — {detalle.Dosis ?? "Sin dosis"}",
+                    DetalleCantidad = 1,
+                    DetallePrecioUnitario = precio,
+                    DetalleDescuento = 0,
+                    DetalleTotalLinea = totalLinea
+                });
+            }
+
+            int correlativo = await _context.Facturas.CountAsync() + 1;
+
+            var factura = new Factura
+            {
+                FacturaNumero = $"FAC-{correlativo:D6}",
+                PacienteId = receta.Consulta.Cita.PacienteId,
+                CitaId = receta.Consulta.CitaId,
+                FacturaFecha = DateTime.Now,
+                FacturaSubtotal = subtotal,
+                FacturaDescuento = 0,
+                FacturaImpuesto = 0,
+                FacturaTotal = subtotal,
+                FacturaEstado = EstadoFactura.Emitida,
+                FacturaFechaRegistro = DateTime.Now
+            };
+
+            _context.Facturas.Add(factura);
+            await _context.SaveChangesAsync();
+
+            foreach (var detalleFactura in detallesFactura)
+            {
+                detalleFactura.FacturaId = factura.FacturaId;
+                _context.FacturaDetalle.Add(detalleFactura);
+            }
+
+            await _context.SaveChangesAsync();
         }
 
 

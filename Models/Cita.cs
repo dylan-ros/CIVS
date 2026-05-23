@@ -37,6 +37,11 @@ namespace CIVS.Models
         [Required, StringLength(500)]
         public string CitaMotivo { get; set; } = string.Empty;
 
+        [StringLength(300)]
+        public string? CitaMotivoCancelacion { get; set; }
+
+        public DateTime? CitaFechaCancelacion { get; set; }
+
         [Required]
         public EstadoCita EstadoCita { get; set; } = EstadoCita.programada;
 
