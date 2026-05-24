@@ -12,9 +12,19 @@
     </div>
 }
 
+@if (TempData["Error"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
 @if (!ViewData.ModelState.IsValid)
 {
-    <div class="alert alert-danger mt-3 mx-0">
+    <div class="alert alert-danger mt-3">
         @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
         {
             <div>@error.ErrorMessage</div>
@@ -22,7 +32,12 @@
     </div>
 }
 
-<form asp-action="CrearFactura" asp-controller="CorteCaja" method="post" class="mt-3">
+<form asp-action="CrearFactura" asp-controller="CorteCaja" method="post" class="mt-3" id="formCrearFactura">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" name="PacienteId" id="PacienteId" />
+    <input type="hidden" name="CitaId" id="CitaId" />
+
     <div class="bg-white border rounded-4 shadow-sm p-4">
 
         <!-- Encabezado -->
@@ -35,9 +50,11 @@
                     </span>
                     <span class="text-muted small">Facturación</span>
                 </div>
+
                 <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
                     Crear nueva factura
                 </h2>
+
                 <div class="mt-3 d-flex gap-2 flex-wrap">
                     <a asp-controller="CorteCaja"
                        asp-action="FacturasPendientes"
@@ -50,7 +67,7 @@
 
         <hr class="my-3" />
 
-        <!-- Datos del paciente y pago -->
+        <!-- Datos de factura -->
         <div class="mb-4">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <h3 class="h6 fw-semibold mb-0">Datos de la factura</h3>
@@ -58,31 +75,45 @@
             </div>
 
             <div class="row g-3">
-                <div class="col-md-4">
+
+                <!-- Paciente -->
+                <div class="col-md-4 position-relative">
                     <label class="form-label">Paciente</label>
-                    <select name="PacienteId" class="form-select" required>
-                        <option value="">-- Seleccionar paciente --</option>
-                        @foreach (var item in ViewBag.Pacientes as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)
-                        {
-                            <option value="@item.Value">@item.Text</option>
-                        }
-                    </select>
+
+                    <input id="buscarPaciente"
+                           type="text"
+                           class="form-control"
+                           autocomplete="off"
+                           placeholder="Buscar paciente por nombre o DPI..." />
+
+                    <div id="resultadosPaciente" class="autocomplete-box"></div>
+
+                    <div class="form-text">
+                        Escribí el nombre o DPI y seleccioná una coincidencia.
+                    </div>
                 </div>
 
-                <div class="col-md-4">
+                <!-- Cita -->
+                <div class="col-md-4 position-relative">
                     <label class="form-label">
                         Cita asociada
                         <span class="text-muted fw-normal">(opcional)</span>
                     </label>
-                    <select name="CitaId" class="form-select">
-                        <option value="">-- Sin cita asociada --</option>
-                        @foreach (var item in ViewBag.Citas as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)
-                        {
-                            <option value="@item.Value">@item.Text</option>
-                        }
-                    </select>
+
+                    <input id="buscarCita"
+                           type="text"
+                           class="form-control"
+                           autocomplete="off"
+                           placeholder="Buscar cita por paciente o fecha..." />
+
+                    <div id="resultadosCita" class="autocomplete-box"></div>
+
+                    <div class="form-text">
+                        Si seleccionás una cita, se selecciona su paciente automáticamente.
+                    </div>
                 </div>
 
+                <!-- Método de pago -->
                 <div class="col-md-2">
                     <label class="form-label">Método de pago</label>
                     <select name="MetodoPagoId" class="form-select" required>
@@ -94,24 +125,28 @@
                     </select>
                 </div>
 
+                <!-- Referencia -->
                 <div class="col-md-2">
                     <label class="form-label">
                         Referencia
                         <span class="text-muted fw-normal">(opcional)</span>
                     </label>
-                    <input name="PagoReferencia" class="form-control"
-                           placeholder="No. de cheque, transferencia..." />
+                    <input name="PagoReferencia"
+                           class="form-control"
+                           placeholder="No. de cheque..." />
                 </div>
             </div>
         </div>
 
         <hr class="my-3" />
 
-        <!-- Líneas de servicios -->
+        <!-- Líneas -->
         <div class="mb-4">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <h3 class="h6 fw-semibold mb-0">Servicios / productos</h3>
-                <button type="button" class="btn btn-outline-success btn-sm"
+
+                <button type="button"
+                        class="btn btn-outline-success btn-sm"
                         onclick="agregarLinea()">
                     + Agregar línea
                 </button>
@@ -124,14 +159,16 @@
             </div>
         </div>
 
-        <!-- Resumen de totales -->
+        <!-- Totales -->
         <div class="d-flex justify-content-end mb-4">
             <div class="border rounded-3 p-3 bg-light" style="min-width:260px;">
                 <div class="d-flex justify-content-between mb-1">
                     <span class="text-muted small">Subtotal</span>
                     <span class="fw-semibold" id="resumen-subtotal">Q 0.00</span>
                 </div>
+
                 <hr class="my-2" />
+
                 <div class="d-flex justify-content-between">
                     <span class="fw-bold">Total</span>
                     <span class="fw-bold text-success fs-5" id="resumen-total">Q 0.00</span>
@@ -141,62 +178,386 @@
 
         <hr class="my-4" />
 
+        <!-- Botones -->
         <div class="d-flex gap-2 justify-content-end">
-            <button type="submit" class="btn btn-primary">Emitir factura</button>
-            <a asp-controller="CorteCaja" asp-action="Index"
-               class="btn btn-outline-secondary">Cancelar</a>
-        </div>
+            <button type="submit" class="btn btn-primary">
+                Emitir factura
+            </button>
 
+            <a asp-controller="CorteCaja" asp-action="Index" class="btn btn-outline-secondary">
+                Cancelar
+            </a>
+        </div>
     </div>
 </form>
 
+<style>
+    .autocomplete-box {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 12px;
+        right: 12px;
+        z-index: 1050;
+        max-height: 260px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 1px solid #ced4da;
+        border-radius: .75rem;
+        box-shadow: 0 10px 24px rgba(0,0,0,.10);
+        margin-top: 4px;
+    }
+
+        .autocomplete-box.in-linea {
+            left: 0;
+            right: 0;
+            z-index: 1060;
+        }
+
+    .autocomplete-item {
+        padding: .65rem .85rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f3f5;
+        font-size: .9rem;
+    }
+
+        .autocomplete-item:hover {
+            background: #e9f7ef;
+            color: #1e7e34;
+        }
+
+    .autocomplete-title {
+        font-weight: 600;
+    }
+
+    .autocomplete-subtitle {
+        font-size: .75rem;
+        color: #6c757d;
+    }
+
+    .autocomplete-empty {
+        padding: .75rem .85rem;
+        color: #6c757d;
+        font-size: .85rem;
+    }
+</style>
+
 @section Scripts {
     <script>
+        const pacientes = @Html.Raw(ViewBag.PacientesJson ?? "[]");
+        const citas = @Html.Raw(ViewBag.CitasJson ?? "[]");
+        const medicamentos = @Html.Raw(ViewBag.MedicamentosJson ?? "[]");
+
         let indice = 0;
+
+        function normalizar(texto) {
+            return (texto || '')
+                .toString()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim();
+        }
+
+        function escaparHtml(texto) {
+            return (texto || '')
+                .toString()
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function obtenerTextoMedicamento(m) {
+            if (m.texto) {
+                return m.texto;
+            }
+
+            const nombre = m.medicamentoNombre || '';
+            const presentacion = m.medicamentoPresentacion ? ` — ${m.medicamentoPresentacion}` : '';
+            const concentracion = m.medicamentoConcentracion ? ` ${m.medicamentoConcentracion}` : '';
+
+            return `${nombre}${presentacion}${concentracion}`;
+        }
+
+        function filtrar(data, texto, campoTexto) {
+            const busqueda = normalizar(texto);
+
+            if (!busqueda) {
+                return [];
+            }
+
+            const palabras = busqueda.split(' ').filter(Boolean);
+
+            return data
+                .filter(function (item) {
+                    const textoItem = normalizar(campoTexto ? campoTexto(item) : item.texto);
+                    return palabras.every(function (palabra) {
+                        return textoItem.includes(palabra);
+                    });
+                })
+                .slice(0, 8);
+        }
+
+        function buscarPacientePorId(pacienteId) {
+            return pacientes.find(function (p) {
+                return Number(p.pacienteId) === Number(pacienteId);
+            });
+        }
+
+        function configurarBuscador(config) {
+            const input = document.getElementById(config.inputId);
+            const hidden = document.getElementById(config.hiddenId);
+            const resultados = document.getElementById(config.resultadosId);
+
+            if (!input || !hidden || !resultados) {
+                return;
+            }
+
+            input.addEventListener('input', function () {
+                hidden.value = '';
+                resultados.innerHTML = '';
+
+                if (config.inputId === 'buscarPaciente') {
+                    document.getElementById('CitaId').value = '';
+                    document.getElementById('buscarCita').value = '';
+                }
+
+                const texto = input.value.trim();
+
+                if (!texto) {
+                    resultados.style.display = 'none';
+                    return;
+                }
+
+                let data = config.data;
+
+                if (config.inputId === 'buscarCita') {
+                    const pacienteId = document.getElementById('PacienteId').value;
+
+                    if (pacienteId) {
+                        data = citas.filter(function (c) {
+                            return Number(c.pacienteId) === Number(pacienteId);
+                        });
+                    }
+                }
+
+                const encontrados = filtrar(data, texto);
+
+                if (encontrados.length === 0) {
+                    resultados.innerHTML = `<div class="autocomplete-empty">${config.mensajeVacio}</div>`;
+                    resultados.style.display = 'block';
+                    return;
+                }
+
+                encontrados.forEach(function (item) {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+
+                    if (config.inputId === 'buscarCita') {
+                        div.innerHTML = `
+                            <div class="autocomplete-title">${escaparHtml(item.texto)}</div>
+                            <div class="autocomplete-subtitle">Paciente: ${escaparHtml(item.pacienteNombre || '')}</div>
+                        `;
+                    } else {
+                        div.innerHTML = `<div class="autocomplete-title">${escaparHtml(item.texto)}</div>`;
+                    }
+
+                    div.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+
+                        input.value = item.texto;
+                        hidden.value = item[config.idField];
+                        resultados.style.display = 'none';
+
+                        if (config.inputId === 'buscarCita') {
+                            const paciente = buscarPacientePorId(item.pacienteId);
+
+                            document.getElementById('PacienteId').value = item.pacienteId;
+                            document.getElementById('buscarPaciente').value = paciente
+                                ? paciente.texto
+                                : item.pacienteNombre;
+                        }
+                    });
+
+                    resultados.appendChild(div);
+                });
+
+                resultados.style.display = 'block';
+            });
+
+            input.addEventListener('focus', function () {
+                if (input.value.trim()) {
+                    input.dispatchEvent(new Event('input'));
+                }
+            });
+
+            input.addEventListener('blur', function () {
+                setTimeout(function () {
+                    resultados.style.display = 'none';
+                }, 180);
+            });
+        }
+
+        configurarBuscador({
+            inputId: 'buscarPaciente',
+            hiddenId: 'PacienteId',
+            resultadosId: 'resultadosPaciente',
+            data: pacientes,
+            idField: 'pacienteId',
+            mensajeVacio: 'No se encontraron pacientes.'
+        });
+
+        configurarBuscador({
+            inputId: 'buscarCita',
+            hiddenId: 'CitaId',
+            resultadosId: 'resultadosCita',
+            data: citas,
+            idField: 'citaId',
+            mensajeVacio: 'No se encontraron citas atendidas.'
+        });
+
+        function buscarMedicamento(input, idActual) {
+            const hiddenMedicamento = document.getElementById(`MedicamentoId-${idActual}`);
+            const hiddenDescripcion = document.getElementById(`Descripcion-${idActual}`);
+            const resultados = document.getElementById(`resultadosMedicamento-${idActual}`);
+
+            hiddenMedicamento.value = '';
+            hiddenDescripcion.value = input.value.trim();
+            resultados.innerHTML = '';
+
+            const texto = input.value.trim();
+
+            if (!texto) {
+                resultados.style.display = 'none';
+                return;
+            }
+
+            const encontrados = filtrar(medicamentos, texto, obtenerTextoMedicamento);
+
+            if (encontrados.length === 0) {
+                resultados.innerHTML = `
+                    <div class="autocomplete-empty">
+                        No se encontraron medicamentos. Podés dejarlo como servicio manual.
+                    </div>`;
+                resultados.style.display = 'block';
+                return;
+            }
+
+            encontrados.forEach(function (m) {
+                const textoMedicamento = obtenerTextoMedicamento(m);
+                const precio = Number(m.medicamentoPrecio || 0).toFixed(2);
+
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.innerHTML = `
+                    <div class="autocomplete-title">${escaparHtml(textoMedicamento)}</div>
+                    <div class="autocomplete-subtitle">Precio: Q ${precio}</div>
+                `;
+
+                div.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+
+                    input.value = textoMedicamento;
+                    hiddenDescripcion.value = textoMedicamento;
+                    hiddenMedicamento.value = m.medicamentoId;
+
+                    document.getElementById(`Precio-${idActual}`).value = precio;
+                    resultados.style.display = 'none';
+
+                    calcularTotal();
+                });
+
+                resultados.appendChild(div);
+            });
+
+            resultados.style.display = 'block';
+        }
 
         function agregarLinea() {
             const contenedor = document.getElementById('contenedor-lineas');
-            document.getElementById('mensaje-vacio').style.display = 'none';
+            const mensajeVacio = document.getElementById('mensaje-vacio');
+
+            if (mensajeVacio) {
+                mensajeVacio.style.display = 'none';
+            }
+
+            const idActual = indice;
 
             const linea = document.createElement('div');
             linea.className = 'border rounded-3 p-3 mb-2 bg-light position-relative';
-            linea.id = `linea-${indice}`;
+            linea.id = `linea-${idActual}`;
+
             linea.innerHTML = `
                 <button type="button"
                         class="btn-close position-absolute top-0 end-0 m-2"
-                        onclick="eliminarLinea(${indice})"
+                        onclick="eliminarLinea(${idActual})"
                         title="Eliminar línea"></button>
+
                 <div class="row g-2 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label small">Descripción <span class="text-danger">*</span></label>
-                        <input name="DetalleDescripcion" class="form-control form-control-sm"
-                               placeholder="Ej. Consulta general, Hemograma..."
-                               oninput="calcularTotal()" required />
+                    <div class="col-md-4 position-relative">
+                        <label class="form-label small">
+                            Servicio / producto <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               autocomplete="off"
+                               placeholder="Buscar medicamento o escribir servicio..."
+                               oninput="buscarMedicamento(this, ${idActual})"
+                               onfocus="buscarMedicamento(this, ${idActual})"
+                               onblur="setTimeout(function(){ document.getElementById('resultadosMedicamento-${idActual}').style.display = 'none'; }, 180)"
+                               required />
+
+                        <input type="hidden" name="MedicamentoId" id="MedicamentoId-${idActual}" />
+                        <input type="hidden" name="DetalleDescripcion" id="Descripcion-${idActual}" />
+
+                        <div id="resultadosMedicamento-${idActual}" class="autocomplete-box in-linea"></div>
                     </div>
+
                     <div class="col-md-2">
                         <label class="form-label small">Cantidad</label>
-                        <input name="DetalleCantidad" type="number" min="1" value="1"
+                        <input name="DetalleCantidad"
+                               type="number"
+                               min="1"
+                               value="1"
                                class="form-control form-control-sm"
                                oninput="calcularTotal()" />
                     </div>
+
                     <div class="col-md-2">
                         <label class="form-label small">Precio unit. (Q)</label>
-                        <input name="DetallePrecioUnitario" type="number" min="0" step="0.01" value="0.00"
+                        <input name="DetallePrecioUnitario"
+                               id="Precio-${idActual}"
+                               type="number"
+                               min="0"
+                               step="0.01"
+                               value="0.00"
                                class="form-control form-control-sm"
                                oninput="calcularTotal()" />
                     </div>
+
                     <div class="col-md-2">
                         <label class="form-label small">Descuento (Q)</label>
-                        <input name="DetalleDescuento" type="number" min="0" step="0.01" value="0.00"
+                        <input name="DetalleDescuento"
+                               type="number"
+                               min="0"
+                               step="0.01"
+                               value="0.00"
                                class="form-control form-control-sm"
                                oninput="calcularTotal()" />
                     </div>
+
                     <div class="col-md-2">
                         <label class="form-label small">Total línea</label>
                         <input class="form-control form-control-sm bg-white fw-semibold"
-                               id="total-linea-${indice}" readonly value="Q 0.00" />
+                               id="total-linea-${idActual}"
+                               readonly
+                               value="Q 0.00" />
                     </div>
-                </div>`;
+                </div>
+            `;
 
             contenedor.appendChild(linea);
             indice++;
@@ -205,33 +566,79 @@
 
         function eliminarLinea(id) {
             const linea = document.getElementById(`linea-${id}`);
-            if (linea) linea.remove();
+
+            if (linea) {
+                linea.remove();
+            }
+
             const contenedor = document.getElementById('contenedor-lineas');
-            if (contenedor.children.length === 0)
-                document.getElementById('mensaje-vacio').style.display = '';
+            const mensajeVacio = document.getElementById('mensaje-vacio');
+
+            if (contenedor.children.length === 0 && mensajeVacio) {
+                mensajeVacio.style.display = '';
+            }
+
             calcularTotal();
         }
 
         function calcularTotal() {
-            const cantidades  = document.querySelectorAll('[name="DetalleCantidad"]');
-            const precios     = document.querySelectorAll('[name="DetallePrecioUnitario"]');
-            const descuentos  = document.querySelectorAll('[name="DetalleDescuento"]');
-
+            const lineas = document.querySelectorAll('#contenedor-lineas > div');
             let subtotal = 0;
 
-            cantidades.forEach((_, i) => {
-                const cant  = parseFloat(cantidades[i]?.value  || 0);
-                const prec  = parseFloat(precios[i]?.value     || 0);
-                const desc  = parseFloat(descuentos[i]?.value  || 0);
-                const total = (cant * prec) - desc;
-                subtotal   += total;
+            lineas.forEach(function (linea) {
+                const cantidadInput = linea.querySelector('[name="DetalleCantidad"]');
+                const precioInput = linea.querySelector('[name="DetallePrecioUnitario"]');
+                const descuentoInput = linea.querySelector('[name="DetalleDescuento"]');
+                const totalInput = linea.querySelector('[id^="total-linea-"]');
 
-                const campo = document.getElementById(`total-linea-${i}`);
-                if (campo) campo.value = `Q ${total.toFixed(2)}`;
+                const cantidad = parseFloat(cantidadInput?.value || 0);
+                const precio = parseFloat(precioInput?.value || 0);
+                const descuento = parseFloat(descuentoInput?.value || 0);
+
+                let total = (cantidad * precio) - descuento;
+
+                if (total < 0) {
+                    total = 0;
+                }
+
+                subtotal += total;
+
+                if (totalInput) {
+                    totalInput.value = `Q ${total.toFixed(2)}`;
+                }
             });
 
             document.getElementById('resumen-subtotal').textContent = `Q ${subtotal.toFixed(2)}`;
-            document.getElementById('resumen-total').textContent    = `Q ${subtotal.toFixed(2)}`;
+            document.getElementById('resumen-total').textContent = `Q ${subtotal.toFixed(2)}`;
         }
+
+        document.getElementById('formCrearFactura').addEventListener('submit', function (e) {
+            const pacienteId = document.getElementById('PacienteId').value;
+
+            if (!pacienteId) {
+                e.preventDefault();
+                alert('Debés buscar y seleccionar un paciente válido.');
+                document.getElementById('buscarPaciente').focus();
+                return;
+            }
+
+            const detalles = Array.from(document.querySelectorAll('[name="DetalleDescripcion"]'))
+                .filter(function (input) {
+                    return input.value && input.value.trim() !== '';
+                });
+
+            if (detalles.length === 0) {
+                e.preventDefault();
+                alert('Debés agregar al menos una línea a la factura.');
+                return;
+            }
+        });
+
+        setTimeout(function () {
+            document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
+                .forEach(function (alertEl) {
+                    bootstrap.Alert.getOrCreateInstance(alertEl).close();
+                });
+        }, 3000);
     </script>
 }

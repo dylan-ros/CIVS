@@ -170,6 +170,7 @@ namespace CIVS.Controllers
             int? CitaId,
             int MetodoPagoId,
             string? PagoReferencia,
+            List<int?> MedicamentoId,
             List<string> DetalleDescripcion,
             List<int> DetalleCantidad,
             List<decimal> DetallePrecioUnitario,
@@ -195,19 +196,49 @@ namespace CIVS.Controllers
 
             for (int i = 0; i < DetalleDescripcion.Count; i++)
             {
-                if (string.IsNullOrWhiteSpace(DetalleDescripcion[i])) continue;
+                if (string.IsNullOrWhiteSpace(DetalleDescripcion[i]))
+                    continue;
 
-                decimal cantidad = DetalleCantidad[i];
-                decimal precio = DetallePrecioUnitario[i];
-                decimal descuento = DetalleDescuento[i];
+                int cantidad = i < DetalleCantidad.Count ? DetalleCantidad[i] : 1;
+                decimal precio = i < DetallePrecioUnitario.Count ? DetallePrecioUnitario[i] : 0;
+                decimal descuento = i < DetalleDescuento.Count ? DetalleDescuento[i] : 0;
+
+                int? medicamentoId = null;
+
+                if (MedicamentoId != null &&
+                    i < MedicamentoId.Count &&
+                    MedicamentoId[i].HasValue &&
+                    MedicamentoId[i].Value > 0)
+                {
+                    medicamentoId = MedicamentoId[i].Value;
+
+                    var medicamento = await _context.Medicamentos
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(m => m.MedicamentoId == medicamentoId.Value);
+
+                    if (medicamento != null)
+                    {
+                        precio = medicamento.MedicamentoPrecio ?? 0;
+
+                        DetalleDescripcion[i] =
+                            $"{medicamento.MedicamentoNombre}" +
+                            $"{(!string.IsNullOrWhiteSpace(medicamento.MedicamentoPresentacion) ? " — " + medicamento.MedicamentoPresentacion : "")}" +
+                            $"{(!string.IsNullOrWhiteSpace(medicamento.MedicamentoConcentracion) ? " " + medicamento.MedicamentoConcentracion : "")}";
+                    }
+                }
+
                 decimal totalLinea = (cantidad * precio) - descuento;
+
+                if (totalLinea < 0)
+                    totalLinea = 0;
 
                 subtotal += totalLinea;
 
                 detalles.Add(new FacturaDetalle
                 {
+                    MedicamentoId = medicamentoId,
                     DetalleDescripcion = DetalleDescripcion[i],
-                    DetalleCantidad = DetalleCantidad[i],
+                    DetalleCantidad = cantidad,
                     DetallePrecioUnitario = precio,
                     DetalleDescuento = descuento,
                     DetalleTotalLinea = totalLinea
@@ -298,23 +329,60 @@ namespace CIVS.Controllers
                 .OrderBy(m => m.MetodoPagoNombre)
                 .ToListAsync();
 
+            var pacientesLista = pacientes.Select(p => new
+            {
+                p.PacienteId,
+                Nombre = $"{p.PacienteNombres} {p.PacienteApellido}",
+                Dpi = p.PacienteDPI ?? ""
+            }).ToList();
+
+            var citasLista = citas.Select(c => new
+            {
+                c.CitaId,
+                c.PacienteId,
+                Descripcion = $"{c.Paciente.PacienteNombres} {c.Paciente.PacienteApellido} — {c.CitaFechaInicio:dd/MM/yyyy HH:mm}",
+                PacienteNombre = $"{c.Paciente.PacienteNombres} {c.Paciente.PacienteApellido}"
+            }).ToList();
+
+            // Se dejan por compatibilidad con otras vistas o validaciones existentes.
             ViewBag.Pacientes = new SelectList(
-                pacientes.Select(p => new {
-                    p.PacienteId,
-                    Nombre = $"{p.PacienteNombres} {p.PacienteApellido}"
-                }),
-                "PacienteId", "Nombre", pacienteId);
+                pacientesLista,
+                "PacienteId",
+                "Nombre",
+                pacienteId);
 
             ViewBag.Citas = new SelectList(
-                citas.Select(c => new {
-                    c.CitaId,
-                    Descripcion = $"{c.Paciente.PacienteNombres} {c.Paciente.PacienteApellido} — {c.CitaFechaInicio:dd/MM/yyyy}"
-                }),
-                "CitaId", "Descripcion", citaId);
+                citasLista,
+                "CitaId",
+                "Descripcion",
+                citaId);
 
             ViewBag.MetodosPago = new SelectList(
-                metodos, nameof(MetodoPago.MetodoPagoId),
-                nameof(MetodoPago.MetodoPagoNombre), metodoPagoId);
+                metodos,
+                nameof(MetodoPago.MetodoPagoId),
+                nameof(MetodoPago.MetodoPagoNombre),
+                metodoPagoId);
+
+            // JSON para buscadores.
+            ViewBag.PacientesJson = System.Text.Json.JsonSerializer.Serialize(
+                pacientesLista.Select(p => new
+                {
+                    pacienteId = p.PacienteId,
+                    texto = string.IsNullOrWhiteSpace(p.Dpi)
+                        ? p.Nombre
+                        : $"{p.Nombre} — DPI: {p.Dpi}"
+                })
+            );
+
+            ViewBag.CitasJson = System.Text.Json.JsonSerializer.Serialize(
+                citasLista.Select(c => new
+                {
+                    citaId = c.CitaId,
+                    pacienteId = c.PacienteId,
+                    pacienteNombre = c.PacienteNombre,
+                    texto = c.Descripcion
+                })
+            );
         }
 
 
