@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CIVS.Controllers
 {
@@ -17,6 +18,7 @@ namespace CIVS.Controllers
             _context = context;
         }
 
+        // ── GET: /Laboratorio ────────────────────────────────────────────────
         public async Task<IActionResult> Index(string? q)
         {
             var query = _context.OrdenExamenes
@@ -41,17 +43,12 @@ namespace CIVS.Controllers
 
                     query = query.Where(o =>
                         EF.Functions.Like(o.Examen.ExamenNombre ?? "", $"%{termino}%") ||
-
                         EF.Functions.Like(o.Consulta.Cita.Paciente.PacienteNombres ?? "", $"%{termino}%") ||
-
                         EF.Functions.Like(o.Consulta.Cita.Paciente.PacienteApellido ?? "", $"%{termino}%") ||
-
                         EF.Functions.Like(
                             ((o.Consulta.Cita.Paciente.PacienteNombres ?? "") + " " +
                              (o.Consulta.Cita.Paciente.PacienteApellido ?? "")),
-                            $"%{termino}%"
-                        ) ||
-
+                            $"%{termino}%") ||
                         EF.Functions.Like(o.Consulta.Cita.Paciente.PacienteDPI ?? "", $"%{termino}%")
                     );
                 }
@@ -79,35 +76,27 @@ namespace CIVS.Controllers
         {
             try
             {
-                // Limpiar navegación
                 orden.Consulta = null!;
                 orden.Examen = null!;
                 orden.OrdenDetalles = new List<OrdenExamenDetalle>();
 
-                // IMPORTANTE: quitar validaciones de propiedades de navegación
                 ModelState.Remove("Consulta");
                 ModelState.Remove("Examen");
                 ModelState.Remove("OrdenDetalles");
 
                 if (orden.ConsultaId == 0)
-                {
                     ModelState.AddModelError("ConsultaId", "Debe seleccionar una consulta.");
-                }
 
                 if (orden.ExamenId == 0)
-                {
                     ModelState.AddModelError("ExamenId", "Debe seleccionar un tipo de examen.");
-                }
 
                 if (orden.ConsultaId > 0)
                 {
                     var consultaExiste = await _context.Consultas
-                        .AnyAsync(c => c.ConsultaId == orden.ConsultaId);
+                        .AnyAsync(c => c.ConsultaId == orden.ConsultaId && c.ConsultaEstado);
 
                     if (!consultaExiste)
-                    {
-                        ModelState.AddModelError("ConsultaId", "La consulta seleccionada no existe.");
-                    }
+                        ModelState.AddModelError("ConsultaId", "La consulta seleccionada no existe o está inactiva.");
                 }
 
                 if (orden.ExamenId > 0)
@@ -116,9 +105,7 @@ namespace CIVS.Controllers
                         .AnyAsync(e => e.ExamenId == orden.ExamenId && e.ExamenEstado);
 
                     if (!examenExiste)
-                    {
                         ModelState.AddModelError("ExamenId", "El examen seleccionado no existe o está inactivo.");
-                    }
                 }
 
                 if (!ModelState.IsValid)
@@ -135,19 +122,19 @@ namespace CIVS.Controllers
                 _context.OrdenExamenes.Add(orden);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = $"✅ Orden de examen #{orden.OrdenExamenId} creada exitosamente.";
+                TempData["Success"] = $"Orden de examen #{orden.OrdenExamenId} creada exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateException ex)
             {
                 var mensajeError = ex.InnerException?.Message ?? ex.Message;
-                TempData["Error"] = $"❌ Error de base de datos: {mensajeError}";
+                TempData["Error"] = $"Error de base de datos: {mensajeError}";
                 await CargarCombos(orden.ConsultaId, orden.ExamenId);
                 return View(orden);
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"❌ Error inesperado: {ex.Message}";
+                TempData["Error"] = $"Error inesperado: {ex.Message}";
                 await CargarCombos(orden.ConsultaId, orden.ExamenId);
                 return View(orden);
             }
@@ -186,7 +173,7 @@ namespace CIVS.Controllers
             orden.OrdenEstado = estado;
 
             if (estado == EstadoOrdenExamen.Entregado)
-                orden.ResultadoFecha = DateTime.UtcNow;
+                orden.ResultadoFecha = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
@@ -194,13 +181,13 @@ namespace CIVS.Controllers
             return RedirectToAction(nameof(Detalle), new { id });
         }
 
-        // ── GET: /Laboratorio/CrearExamen ─────────────────────────────────────
+        // ── GET: /Laboratorio/CrearExamen ────────────────────────────────────
         public IActionResult CrearExamen()
         {
             return View();
         }
 
-        // ── POST: /Laboratorio/CrearExamen ────────────────────────────────────
+        // ── POST: /Laboratorio/CrearExamen ───────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearExamen(Examen examen)
@@ -209,14 +196,17 @@ namespace CIVS.Controllers
                 .AnyAsync(e => e.ExamenNombre == examen.ExamenNombre);
 
             if (nombreExiste)
-                ModelState.AddModelError(nameof(examen.ExamenNombre),
+            {
+                ModelState.AddModelError(
+                    nameof(examen.ExamenNombre),
                     "Ya existe un examen registrado con ese nombre.");
+            }
 
             if (!ModelState.IsValid)
                 return View(examen);
 
             examen.ExamenEstado = true;
-            examen.ExamenFechaRegistro = DateTime.UtcNow;
+            examen.ExamenFechaRegistro = DateTime.Now;
 
             _context.Examenes.Add(examen);
             await _context.SaveChangesAsync();
@@ -225,7 +215,149 @@ namespace CIVS.Controllers
             return RedirectToAction(nameof(CrearExamen));
         }
 
-        // ── Helper ────────────────────────────────────────────────────────────
+        // ── GET: /Laboratorio/CrearReceta ────────────────────────────────────
+        public async Task<IActionResult> CrearReceta()
+        {
+            await CargarConsultas();
+            await CargarMedicamentosJson();
+            return View();
+        }
+
+        // ── POST: /Laboratorio/CrearReceta ───────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CrearReceta(
+            int ConsultaId,
+            string? RecetaObservaciones,
+            List<int?>? MedicamentoId,
+            List<string?>? Dosis,
+            List<string?>? Frecuencia,
+            List<string?>? Duracion,
+            List<string?>? Indicaciones)
+        {
+            MedicamentoId ??= new List<int?>();
+            Dosis ??= new List<string?>();
+            Frecuencia ??= new List<string?>();
+            Duracion ??= new List<string?>();
+            Indicaciones ??= new List<string?>();
+
+            if (ConsultaId == 0)
+            {
+                ModelState.AddModelError("", "Debe seleccionar una consulta.");
+                TempData["Error"] = "Debe seleccionar una consulta.";
+                await CargarConsultas();
+                await CargarMedicamentosJson();
+                return View();
+            }
+
+            var consultaExiste = await _context.Consultas
+                .AnyAsync(c => c.ConsultaId == ConsultaId && c.ConsultaEstado);
+
+            if (!consultaExiste)
+            {
+                ModelState.AddModelError("", "La consulta seleccionada no existe o está inactiva.");
+                TempData["Error"] = "La consulta seleccionada no existe o está inactiva.";
+                await CargarConsultas(ConsultaId);
+                await CargarMedicamentosJson();
+                return View();
+            }
+
+            var medicamentosSeleccionados = MedicamentoId
+                .Where(id => id.HasValue && id.Value > 0)
+                .Select(id => id!.Value)
+                .ToList();
+
+            if (!medicamentosSeleccionados.Any())
+            {
+                ModelState.AddModelError("", "Debe agregar al menos un medicamento válido a la receta.");
+                TempData["Error"] = "Debe agregar al menos un medicamento válido a la receta.";
+                await CargarConsultas(ConsultaId);
+                await CargarMedicamentosJson();
+                return View();
+            }
+
+            var medicamentosExistentes = await _context.Medicamentos
+                .Where(m => medicamentosSeleccionados.Contains(m.MedicamentoId) && m.MedicamentoEstado)
+                .Select(m => m.MedicamentoId)
+                .ToListAsync();
+
+            var idsNoValidos = medicamentosSeleccionados
+                .Where(id => !medicamentosExistentes.Contains(id))
+                .ToList();
+
+            if (idsNoValidos.Any())
+            {
+                ModelState.AddModelError("", "Uno o más medicamentos seleccionados no existen o están inactivos.");
+                TempData["Error"] = "Uno o más medicamentos seleccionados no existen o están inactivos.";
+                await CargarConsultas(ConsultaId);
+                await CargarMedicamentosJson();
+                return View();
+            }
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var receta = new Receta
+                {
+                    ConsultaId = ConsultaId,
+                    RecetaObservaciones = RecetaObservaciones,
+                    RecetaFechaEmision = DateTime.Now,
+                    RecetaEstado = true
+                };
+
+                _context.Recetas.Add(receta);
+                await _context.SaveChangesAsync();
+
+                for (int i = 0; i < MedicamentoId.Count; i++)
+                {
+                    if (!MedicamentoId[i].HasValue || MedicamentoId[i].Value <= 0)
+                        continue;
+
+                    _context.RecetaDetalles.Add(new RecetaDetalle
+                    {
+                        RecetaId = receta.RecetaId,
+                        MedicamentoId = MedicamentoId[i].Value,
+                        Dosis = i < Dosis.Count ? Dosis[i] : null,
+                        Frecuencia = i < Frecuencia.Count ? Frecuencia[i] : null,
+                        Duracion = i < Duracion.Count ? Duracion[i] : null,
+                        Indicaciones = i < Indicaciones.Count ? Indicaciones[i] : null
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+
+                await CrearFacturaPendientePorRecetaAsync(receta.RecetaId);
+
+                await transaction.CommitAsync();
+
+                TempData["Success"] = "Receta médica creada exitosamente. También se generó una factura pendiente en Corte de Caja.";
+                return RedirectToAction(nameof(CrearReceta));
+            }
+            catch (DbUpdateException ex)
+            {
+                await transaction.RollbackAsync();
+
+                var mensajeError = ex.InnerException?.Message ?? ex.Message;
+                TempData["Error"] = $"Error de base de datos al crear la receta: {mensajeError}";
+
+                await CargarConsultas(ConsultaId);
+                await CargarMedicamentosJson();
+                return View();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                TempData["Error"] = $"Error inesperado al crear la receta: {ex.Message}";
+
+                await CargarConsultas(ConsultaId);
+                await CargarMedicamentosJson();
+                return View();
+            }
+        }
+
+        // ── Helpers de combos ────────────────────────────────────────────────
         private async Task CargarCombos(int? consultaId = null, int? examenId = null)
         {
             var consultas = await _context.Consultas
@@ -240,87 +372,30 @@ namespace CIVS.Controllers
                 .OrderBy(e => e.ExamenNombre)
                 .ToListAsync();
 
-            ViewBag.Consultas = new SelectList(
-                consultas.Select(c => new {
-                    c.ConsultaId,
-                    Descripcion = $"{c.Cita.Paciente.PacienteNombres} {c.Cita.Paciente.PacienteApellido} — {c.ConsultaFechaRegistro:dd/MM/yyyy}"
-                }),
-                "ConsultaId", "Descripcion", consultaId);
-
-            ViewBag.Examenes = new SelectList(
-                examenes, nameof(Examen.ExamenId),
-                nameof(Examen.ExamenNombre), examenId);
-        }
-
-        // ── GET: /Laboratorio/CrearReceta ─────────────────────────────────────────
-        public async Task<IActionResult> CrearReceta()
-        {
-            await CargarConsultas();
-            await CargarMedicamentosJson();
-            return View();
-        }
-
-
-        // ── POST: /Laboratorio/CrearReceta ────────────────────────────────────────
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CrearReceta(
-            int ConsultaId,
-            string? RecetaObservaciones,
-            List<int> MedicamentoId,
-            List<string?> Dosis,
-            List<string?> Frecuencia,
-            List<string?> Duracion,
-            List<string?> Indicaciones)
-        {
-            if (ConsultaId == 0)
+            var consultasLista = consultas.Select(c => new
             {
-                ModelState.AddModelError("", "Debe seleccionar una consulta.");
-                await CargarConsultas();
-                await CargarMedicamentosJson();
-                return View();
-            }
+                c.ConsultaId,
+                Descripcion = $"{c.Cita.Paciente.PacienteNombres} {c.Cita.Paciente.PacienteApellido} — {c.ConsultaFechaRegistro:dd/MM/yyyy}"
+            }).ToList();
 
-            if (MedicamentoId == null || !MedicamentoId.Any())
-            {
-                ModelState.AddModelError("", "Debe agregar al menos un medicamento a la receta.");
-                await CargarConsultas(ConsultaId);
-                await CargarMedicamentosJson();
-                return View();
-            }
+            ViewBag.Consultas = new SelectList(consultasLista, "ConsultaId", "Descripcion", consultaId);
+            ViewBag.Examenes = new SelectList(examenes, nameof(Examen.ExamenId), nameof(Examen.ExamenNombre), examenId);
 
-            // Crear encabezado
-            var receta = new Receta
-            {
-                ConsultaId = ConsultaId,
-                RecetaObservaciones = RecetaObservaciones,
-                RecetaFechaEmision = DateTime.UtcNow,
-                RecetaEstado = true
-            };
-
-            _context.Recetas.Add(receta);
-            await _context.SaveChangesAsync();
-
-            // Crear líneas de detalle
-            for (int i = 0; i < MedicamentoId.Count; i++)
-            {
-                _context.RecetaDetalles.Add(new RecetaDetalle
+            ViewBag.ConsultasJson = System.Text.Json.JsonSerializer.Serialize(
+                consultasLista.Select(c => new
                 {
-                    RecetaId = receta.RecetaId,
-                    MedicamentoId = MedicamentoId[i],
-                    Dosis = i < Dosis.Count ? Dosis[i] : null,
-                    Frecuencia = i < Frecuencia.Count ? Frecuencia[i] : null,
-                    Duracion = i < Duracion.Count ? Duracion[i] : null,
-                    Indicaciones = i < Indicaciones.Count ? Indicaciones[i] : null
-                });
-            }
+                    consultaId = c.ConsultaId,
+                    texto = c.Descripcion
+                })
+            );
 
-            await _context.SaveChangesAsync();
-
-            await CrearFacturaPendientePorRecetaAsync(receta.RecetaId);
-
-            TempData["Success"] = "Receta médica creada exitosamente. También se generó una factura pendiente en Corte de Caja.";
-            return RedirectToAction(nameof(CrearReceta));
+            ViewBag.ExamenesJson = System.Text.Json.JsonSerializer.Serialize(
+                examenes.Select(e => new
+                {
+                    examenId = e.ExamenId,
+                    texto = e.ExamenNombre
+                })
+            );
         }
 
         private async Task CargarConsultas(int? seleccionado = null)
@@ -332,34 +407,42 @@ namespace CIVS.Controllers
                 .OrderByDescending(c => c.ConsultaFechaRegistro)
                 .ToListAsync();
 
-            ViewBag.Consultas = new SelectList(
-                consultas.Select(c => new {
-                    c.ConsultaId,
-                    Descripcion = $"{c.Cita.Paciente.PacienteNombres} {c.Cita.Paciente.PacienteApellido} — {c.ConsultaFechaRegistro:dd/MM/yyyy}"
-                }),
-                "ConsultaId", "Descripcion", seleccionado);
+            var consultasLista = consultas.Select(c => new
+            {
+                c.ConsultaId,
+                Descripcion = $"{c.Cita.Paciente.PacienteNombres} {c.Cita.Paciente.PacienteApellido} — {c.ConsultaFechaRegistro:dd/MM/yyyy}"
+            }).ToList();
+
+            ViewBag.Consultas = new SelectList(consultasLista, "ConsultaId", "Descripcion", seleccionado);
+
+            ViewBag.ConsultasJson = System.Text.Json.JsonSerializer.Serialize(
+                consultasLista.Select(c => new
+                {
+                    consultaId = c.ConsultaId,
+                    texto = c.Descripcion
+                })
+            );
         }
 
-        // ── Helper: serializar medicamentos activos a JSON para el script ─────────
         private async Task CargarMedicamentosJson()
         {
             var medicamentos = await _context.Medicamentos
                 .Where(m => m.MedicamentoEstado)
                 .OrderBy(m => m.MedicamentoNombre)
-                .Select(m => new {
-                    m.MedicamentoId,
-                    m.MedicamentoNombre,
-                    m.MedicamentoPresentacion,
-                    m.MedicamentoConcentracion
+                .Select(m => new
+                {
+                    medicamentoId = m.MedicamentoId,
+                    medicamentoNombre = m.MedicamentoNombre,
+                    medicamentoPresentacion = m.MedicamentoPresentacion,
+                    medicamentoConcentracion = m.MedicamentoConcentracion,
+                    medicamentoPrecio = m.MedicamentoPrecio ?? 0,
+                    texto = m.MedicamentoNombre +
+                            (m.MedicamentoPresentacion != null && m.MedicamentoPresentacion != "" ? " — " + m.MedicamentoPresentacion : "") +
+                            (m.MedicamentoConcentracion != null && m.MedicamentoConcentracion != "" ? " " + m.MedicamentoConcentracion : "")
                 })
                 .ToListAsync();
 
-            ViewBag.MedicamentosJson = System.Text.Json.JsonSerializer.Serialize(
-                medicamentos,
-                new System.Text.Json.JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-                });
+            ViewBag.MedicamentosJson = System.Text.Json.JsonSerializer.Serialize(medicamentos);
         }
 
 
@@ -376,8 +459,36 @@ namespace CIVS.Controllers
             if (receta == null || receta.Consulta?.Cita == null)
                 return;
 
-            decimal subtotal = 0;
-            var detallesFactura = new List<FacturaDetalle>();
+            var citaId = receta.Consulta.CitaId;
+
+            var factura = await _context.Facturas
+                .FirstOrDefaultAsync(f =>
+                    f.CitaId == citaId &&
+                    f.FacturaEstado == EstadoFactura.Emitida);
+
+            if (factura == null)
+            {
+                int correlativo = await _context.Facturas.CountAsync() + 1;
+
+                factura = new Factura
+                {
+                    FacturaNumero = $"FAC-{correlativo:D6}",
+                    PacienteId = receta.Consulta.Cita.PacienteId,
+                    CitaId = citaId,
+                    FacturaFecha = DateTime.Now,
+                    FacturaSubtotal = 0,
+                    FacturaDescuento = 0,
+                    FacturaImpuesto = 0,
+                    FacturaTotal = 0,
+                    FacturaEstado = EstadoFactura.Emitida,
+                    FacturaFechaRegistro = DateTime.Now
+                };
+
+                _context.Facturas.Add(factura);
+                await _context.SaveChangesAsync();
+            }
+
+            decimal subtotalAgregado = 0;
 
             foreach (var detalle in receta.RecetaDetalles)
             {
@@ -387,52 +498,37 @@ namespace CIVS.Controllers
                     continue;
 
                 decimal precio = medicamento.MedicamentoPrecio ?? 0;
-                decimal totalLinea = precio;
+                int cantidad = 1;
+                decimal descuento = 0;
+                decimal totalLinea = (cantidad * precio) - descuento;
 
-                subtotal += totalLinea;
+                if (totalLinea < 0)
+                    totalLinea = 0;
 
-                detallesFactura.Add(new FacturaDetalle
+                subtotalAgregado += totalLinea;
+
+                _context.FacturaDetalle.Add(new FacturaDetalle
                 {
+                    FacturaId = factura.FacturaId,
                     MedicamentoId = medicamento.MedicamentoId,
-                    DetalleDescripcion = $"{medicamento.MedicamentoNombre} — {detalle.Dosis ?? "Sin dosis"}",
-                    DetalleCantidad = 1,
+                    DetalleDescripcion = $"{medicamento.MedicamentoNombre}" +
+                                         $"{(!string.IsNullOrWhiteSpace(medicamento.MedicamentoPresentacion) ? " — " + medicamento.MedicamentoPresentacion : "")}" +
+                                         $"{(!string.IsNullOrWhiteSpace(medicamento.MedicamentoConcentracion) ? " " + medicamento.MedicamentoConcentracion : "")}" +
+                                         $"{(!string.IsNullOrWhiteSpace(detalle.Dosis) ? " — " + detalle.Dosis : "")}",
+                    DetalleCantidad = cantidad,
                     DetallePrecioUnitario = precio,
-                    DetalleDescuento = 0,
+                    DetalleDescuento = descuento,
                     DetalleTotalLinea = totalLinea
                 });
             }
 
-            int correlativo = await _context.Facturas.CountAsync() + 1;
+            factura.FacturaSubtotal += subtotalAgregado;
+            factura.FacturaTotal = (factura.FacturaSubtotal - factura.FacturaDescuento) + factura.FacturaImpuesto;
 
-            var factura = new Factura
-            {
-                FacturaNumero = $"FAC-{correlativo:D6}",
-                PacienteId = receta.Consulta.Cita.PacienteId,
-                CitaId = receta.Consulta.CitaId,
-                FacturaFecha = DateTime.Now,
-                FacturaSubtotal = subtotal,
-                FacturaDescuento = 0,
-                FacturaImpuesto = 0,
-                FacturaTotal = subtotal,
-                FacturaEstado = EstadoFactura.Emitida,
-                FacturaFechaRegistro = DateTime.Now
-            };
-
-            _context.Facturas.Add(factura);
-            await _context.SaveChangesAsync();
-
-            foreach (var detalleFactura in detallesFactura)
-            {
-                detalleFactura.FacturaId = factura.FacturaId;
-                _context.FacturaDetalle.Add(detalleFactura);
-            }
+            if (factura.FacturaTotal < 0)
+                factura.FacturaTotal = 0;
 
             await _context.SaveChangesAsync();
         }
-
-
-
-
-
     }
 }

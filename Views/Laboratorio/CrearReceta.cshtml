@@ -12,6 +12,16 @@
     </div>
 }
 
+@if (TempData["Error"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
+
 @if (!ViewData.ModelState.IsValid)
 {
     <div class="alert alert-danger mx-3 mt-3">
@@ -22,7 +32,11 @@
     </div>
 }
 
-<form asp-action="CrearReceta" asp-controller="Laboratorio" method="post" class="mt-3">
+<form asp-action="CrearReceta" asp-controller="Laboratorio" method="post" class="mt-3" id="formCrearReceta">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" name="ConsultaId" id="ConsultaId" />
+
     <div class="bg-white border rounded-4 shadow-sm p-4">
 
         <!-- Encabezado -->
@@ -35,6 +49,7 @@
                     </span>
                     <span class="text-muted small">Recetas Médicas</span>
                 </div>
+
                 <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
                     Crear receta médica
                 </h2>
@@ -51,15 +66,20 @@
             </div>
 
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-6 position-relative">
                     <label class="form-label">Consulta (Paciente)</label>
-                    <select name="ConsultaId" class="form-select" required>
-                        <option value="">-- Seleccionar consulta --</option>
-                        @foreach (var item in ViewBag.Consultas as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)
-                        {
-                            <option value="@item.Value">@item.Text</option>
-                        }
-                    </select>
+
+                    <input id="buscarConsulta"
+                           type="text"
+                           class="form-control"
+                           autocomplete="off"
+                           placeholder="Buscar por paciente, DPI o fecha..." />
+
+                    <div id="resultadosConsulta" class="autocomplete-box"></div>
+
+                    <div class="form-text">
+                        Escribí el nombre del paciente, DPI o fecha y seleccioná una coincidencia.
+                    </div>
                 </div>
 
                 <div class="col-md-6">
@@ -67,7 +87,9 @@
                         Observaciones generales
                         <span class="text-muted fw-normal">(opcional)</span>
                     </label>
-                    <input name="RecetaObservaciones" class="form-control"
+
+                    <input name="RecetaObservaciones"
+                           class="form-control"
                            placeholder="Ej. Tomar con abundante agua, evitar alcohol..." />
                 </div>
             </div>
@@ -75,12 +97,12 @@
 
         <hr class="my-3" />
 
-        <!-- Líneas de medicamentos -->
+        <!-- Medicamentos -->
         <div class="mb-4">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <h3 class="h6 fw-semibold mb-0">Medicamentos recetados</h3>
-                <button type="button" class="btn btn-outline-success btn-sm"
-                        onclick="agregarLinea()">
+
+                <button type="button" class="btn btn-outline-success btn-sm" onclick="agregarLinea()">
                     + Agregar medicamento
                 </button>
             </div>
@@ -88,95 +110,324 @@
             <div id="contenedor-lineas"></div>
 
             <div id="mensaje-vacio" class="alert alert-light border text-center text-muted small">
-                Hacé clic en <strong>"+ Agregar medicamento"</strong> para añadir
-                medicamentos a la receta.
+                Hacé clic en <strong>"+ Agregar medicamento"</strong> para añadir medicamentos a la receta.
             </div>
         </div>
 
         <hr class="my-4" />
 
+        <!-- Botones -->
         <div class="d-flex gap-2 justify-content-end">
-            <button type="submit" class="btn btn-primary">Guardar receta</button>
-            <a asp-controller="Laboratorio" asp-action="Index"
-               class="btn btn-outline-secondary">Cancelar</a>
-        </div>
+            <button type="submit" class="btn btn-primary">
+                Guardar receta
+            </button>
 
+            <a asp-controller="Laboratorio" asp-action="Index" class="btn btn-outline-secondary">
+                Cancelar
+            </a>
+        </div>
     </div>
 </form>
 
+<style>
+    .autocomplete-box {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 12px;
+        right: 12px;
+        z-index: 1050;
+        max-height: 260px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 1px solid #ced4da;
+        border-radius: .75rem;
+        box-shadow: 0 10px 24px rgba(0,0,0,.10);
+        margin-top: 4px;
+    }
+
+        .autocomplete-box.in-linea {
+            left: 0;
+            right: 0;
+            z-index: 1060;
+        }
+
+    .autocomplete-item {
+        padding: .65rem .85rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f3f5;
+        font-size: .9rem;
+    }
+
+        .autocomplete-item:hover {
+            background: #e9f7ef;
+            color: #1e7e34;
+        }
+
+    .autocomplete-title {
+        font-weight: 600;
+    }
+
+    .autocomplete-subtitle {
+        font-size: .75rem;
+        color: #6c757d;
+    }
+
+    .autocomplete-empty {
+        padding: .75rem .85rem;
+        color: #6c757d;
+        font-size: .85rem;
+    }
+</style>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
     <script>
-        const medicamentos = @Html.Raw(ViewBag.MedicamentosJson);
+        const consultas = @Html.Raw(ViewBag.ConsultasJson ?? "[]");
+        const medicamentos = @Html.Raw(ViewBag.MedicamentosJson ?? "[]");
         let indice = 0;
+
+        function normalizar(texto) {
+            return (texto || '')
+                .toString()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim();
+        }
+
+        function escaparHtml(texto) {
+            return (texto || '')
+                .toString()
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function obtenerTexto(item) {
+            if (item.texto) {
+                return item.texto;
+            }
+
+            const nombre = item.medicamentoNombre || '';
+            const presentacion = item.medicamentoPresentacion ? ` — ${item.medicamentoPresentacion}` : '';
+            const concentracion = item.medicamentoConcentracion ? ` ${item.medicamentoConcentracion}` : '';
+
+            return `${nombre}${presentacion}${concentracion}`;
+        }
+
+        function filtrar(data, texto) {
+            const busqueda = normalizar(texto);
+
+            if (!busqueda) {
+                return [];
+            }
+
+            const palabras = busqueda.split(' ').filter(Boolean);
+
+            return data
+                .filter(item => {
+                    const textoItem = normalizar(obtenerTexto(item));
+                    return palabras.every(palabra => textoItem.includes(palabra));
+                })
+                .slice(0, 8);
+        }
+
+        function configurarBuscador(input, hidden, resultados, data, idField, mensajeVacio) {
+            if (!input || !hidden || !resultados) {
+                return;
+            }
+
+            input.addEventListener('input', function () {
+                hidden.value = '';
+                resultados.innerHTML = '';
+
+                const texto = input.value.trim();
+
+                if (!texto) {
+                    resultados.style.display = 'none';
+                    return;
+                }
+
+                const encontrados = filtrar(data, texto);
+
+                if (encontrados.length === 0) {
+                    resultados.innerHTML = `<div class="autocomplete-empty">${mensajeVacio}</div>`;
+                    resultados.style.display = 'block';
+                    return;
+                }
+
+                encontrados.forEach(function (item) {
+                    const div = document.createElement('div');
+                    const textoItem = obtenerTexto(item);
+
+                    div.className = 'autocomplete-item';
+
+                    if (item.medicamentoPrecio !== undefined) {
+                        const precio = Number(item.medicamentoPrecio || 0).toFixed(2);
+                        div.innerHTML = `
+                            <div class="autocomplete-title">${escaparHtml(textoItem)}</div>
+                            <div class="autocomplete-subtitle">Precio: Q ${precio}</div>
+                        `;
+                    } else {
+                        div.innerHTML = `<div class="autocomplete-title">${escaparHtml(textoItem)}</div>`;
+                    }
+
+                    div.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+
+                        input.value = textoItem;
+                        hidden.value = item[idField];
+                        resultados.style.display = 'none';
+                    });
+
+                    resultados.appendChild(div);
+                });
+
+                resultados.style.display = 'block';
+            });
+
+            input.addEventListener('focus', function () {
+                if (input.value.trim()) {
+                    input.dispatchEvent(new Event('input'));
+                }
+            });
+
+            input.addEventListener('blur', function () {
+                setTimeout(function () {
+                    resultados.style.display = 'none';
+                }, 180);
+            });
+        }
+
+        configurarBuscador(
+            document.getElementById('buscarConsulta'),
+            document.getElementById('ConsultaId'),
+            document.getElementById('resultadosConsulta'),
+            consultas,
+            'consultaId',
+            'No se encontraron consultas.'
+        );
 
         function agregarLinea() {
             const contenedor = document.getElementById('contenedor-lineas');
-            document.getElementById('mensaje-vacio').style.display = 'none';
+            const mensajeVacio = document.getElementById('mensaje-vacio');
 
-            const opciones = medicamentos.map(m =>
-                `<option value="${m.medicamentoId}">
-                    ${m.medicamentoNombre}
-                    ${m.medicamentoPresentacion ? ' — ' + m.medicamentoPresentacion : ''}
-                    ${m.medicamentoConcentracion ? ' ' + m.medicamentoConcentracion : ''}
-                </option>`
-            ).join('');
+            if (mensajeVacio) {
+                mensajeVacio.style.display = 'none';
+            }
+
+            const idActual = indice;
 
             const linea = document.createElement('div');
             linea.className = 'border rounded-3 p-3 mb-3 bg-light position-relative';
-            linea.id = `linea-${indice}`;
+            linea.id = `linea-${idActual}`;
+
             linea.innerHTML = `
                 <button type="button"
                         class="btn-close position-absolute top-0 end-0 m-2"
-                        onclick="eliminarLinea(${indice})"
+                        onclick="eliminarLinea(${idActual})"
                         title="Eliminar"></button>
+
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-4 position-relative">
                         <label class="form-label">
                             Medicamento <span class="text-danger">*</span>
                         </label>
-                        <select name="MedicamentoId" class="form-select" required>
-                            <option value="">-- Seleccionar --</option>
-                            ${opciones}
-                        </select>
+
+                        <input type="text"
+                               id="buscarMedicamento-${idActual}"
+                               class="form-control"
+                               autocomplete="off"
+                               placeholder="Buscar medicamento..." />
+
+                        <input type="hidden"
+                               name="MedicamentoId"
+                               id="MedicamentoId-${idActual}" />
+
+                        <div id="resultadosMedicamento-${idActual}" class="autocomplete-box in-linea"></div>
                     </div>
+
                     <div class="col-md-2">
                         <label class="form-label">Dosis</label>
-                        <input name="Dosis" class="form-control"
-                               placeholder="Ej. 500 mg" />
+                        <input name="Dosis" class="form-control" placeholder="Ej. 500 mg" />
                     </div>
+
                     <div class="col-md-2">
                         <label class="form-label">Frecuencia</label>
-                        <input name="Frecuencia" class="form-control"
-                               placeholder="Ej. Cada 8h" />
+                        <input name="Frecuencia" class="form-control" placeholder="Ej. Cada 8h" />
                     </div>
+
                     <div class="col-md-2">
                         <label class="form-label">Duración</label>
-                        <input name="Duracion" class="form-control"
-                               placeholder="Ej. 7 días" />
+                        <input name="Duracion" class="form-control" placeholder="Ej. 7 días" />
                     </div>
+
                     <div class="col-md-2">
                         <label class="form-label">Indicaciones</label>
-                        <input name="Indicaciones" class="form-control"
-                               placeholder="Ej. Con comida" />
+                        <input name="Indicaciones" class="form-control" placeholder="Ej. Con comida" />
                     </div>
                 </div>`;
 
             contenedor.appendChild(linea);
+
+            configurarBuscador(
+                document.getElementById(`buscarMedicamento-${idActual}`),
+                document.getElementById(`MedicamentoId-${idActual}`),
+                document.getElementById(`resultadosMedicamento-${idActual}`),
+                medicamentos,
+                'medicamentoId',
+                'No se encontraron medicamentos.'
+            );
+
             indice++;
         }
 
         function eliminarLinea(id) {
             const linea = document.getElementById(`linea-${id}`);
-            if (linea) linea.remove();
+
+            if (linea) {
+                linea.remove();
+            }
+
             const contenedor = document.getElementById('contenedor-lineas');
-            if (contenedor.children.length === 0)
-                document.getElementById('mensaje-vacio').style.display = '';
+            const mensajeVacio = document.getElementById('mensaje-vacio');
+
+            if (contenedor.children.length === 0 && mensajeVacio) {
+                mensajeVacio.style.display = '';
+            }
         }
 
+        document.getElementById('formCrearReceta').addEventListener('submit', function (e) {
+            const consultaId = document.getElementById('ConsultaId').value;
+
+            if (!consultaId) {
+                e.preventDefault();
+                alert('Debés buscar y seleccionar una consulta válida.');
+                document.getElementById('buscarConsulta').focus();
+                return;
+            }
+
+            const medicamentosSeleccionados = Array.from(document.querySelectorAll('[name="MedicamentoId"]'))
+                .filter(function (input) {
+                    return input.value && input.value.trim() !== '';
+                });
+
+            if (medicamentosSeleccionados.length === 0) {
+                e.preventDefault();
+                alert('Debés agregar al menos un medicamento válido.');
+                return;
+            }
+        });
+
         setTimeout(function () {
-            const alertEl = document.querySelector('.alert.alert-success');
-            if (alertEl) bootstrap.Alert.getOrCreateInstance(alertEl).close();
+            document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
+                .forEach(function (alertEl) {
+                    bootstrap.Alert.getOrCreateInstance(alertEl).close();
+                });
         }, 3000);
     </script>
 }
