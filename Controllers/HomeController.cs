@@ -21,18 +21,23 @@ namespace CIVS.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var ahora = DateTime.UtcNow;
+            var ahora = HoraGuatemala();
+            var hoy = ahora.Date;
 
-            // Contadores generales
+            ViewBag.AhoraGuatemala = ahora;
+            ViewBag.EsMedico = User.IsInRole("Medico");
+
+            // Contadores generales usando fecha de Guatemala
             ViewBag.TotalCitasHoy = await _context.Citas
-                .CountAsync(c => c.CitaFechaInicio.Date == ahora.Date);
+                .CountAsync(c => c.CitaFechaInicio.Date == hoy);
 
             ViewBag.TotalProgramadas = await _context.Citas
                 .CountAsync(c => c.EstadoCita == EstadoCita.programada
-                              && c.CitaFechaInicio.Date == ahora.Date);
+                              && c.CitaFechaInicio.Date == hoy);
 
             ViewBag.TotalAtendidas = await _context.Citas
-                .CountAsync(c => c.EstadoCita == EstadoCita.atendida);
+                .CountAsync(c => c.EstadoCita == EstadoCita.atendida
+                              && c.CitaFechaInicio.Date == hoy);
 
             ViewBag.TotalPacientes = await _context.Pacientes
                 .CountAsync(p => p.PacienteEstado);
@@ -44,9 +49,15 @@ namespace CIVS.Controllers
             }
 
             // Si SÍ es médico, buscar su usuario
-            var username = User.Identity!.Name;
+            var username = User.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return View(new List<Cita>());
+            }
 
             var usuario = await _context.Usuarios
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.UsuarioUsername == username);
 
             if (usuario == null)
@@ -57,6 +68,7 @@ namespace CIVS.Controllers
             // Buscar el médico asociado a ese usuario
             var medico = await _context.Medicos
                 .Include(m => m.Especialidad)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.UsuarioId == usuario.UsuarioId);
 
             if (medico == null)
@@ -64,7 +76,8 @@ namespace CIVS.Controllers
                 return View(new List<Cita>());
             }
 
-            // Traer SOLO las citas de ese médico
+            // Traer citas del médico
+            // Puedes dejar futuras y actuales, no canceladas.
             var misCitas = await _context.Citas
                 .Include(c => c.Paciente)
                 .Include(c => c.Medico)
@@ -74,9 +87,28 @@ namespace CIVS.Controllers
                 .OrderBy(c => c.CitaFechaInicio)
                 .ToListAsync();
 
-            ViewBag.EsMedico = true;
-
             return View(misCitas);
+        }
+
+        private static DateTime HoraGuatemala()
+        {
+            try
+            {
+                var zona = TimeZoneInfo.FindSystemTimeZoneById("Central America Standard Time");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zona);
+            }
+            catch
+            {
+                try
+                {
+                    var zona = TimeZoneInfo.FindSystemTimeZoneById("America/Guatemala");
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zona);
+                }
+                catch
+                {
+                    return DateTime.UtcNow.AddHours(-6);
+                }
+            }
         }
 
         public IActionResult Privacy() => View();

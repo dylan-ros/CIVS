@@ -2,7 +2,29 @@
 
 @{
     ViewData["Title"] = "Inicio";
+
     var esMedico = ViewBag.EsMedico as bool? == true;
+
+    // Hora que debe venir desde el HomeController.
+    // En el controller debes enviar: ViewBag.AhoraGuatemala = HoraGuatemala();
+    DateTime ahoraGuatemala = ViewBag.AhoraGuatemala != null
+        ? (DateTime)ViewBag.AhoraGuatemala
+        : DateTime.UtcNow.AddHours(-6);
+
+    // Datos de diagnóstico temporal para verificar qué hora está usando Azure.
+    DateTime horaServidor = DateTime.Now;
+    DateTime horaUtc = DateTime.UtcNow;
+    TimeZoneInfo zonaServidor = TimeZoneInfo.Local;
+}
+
+@if (TempData["Success"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
 }
 
 @if (TempData["Error"] != null)
@@ -10,22 +32,46 @@
     <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
         <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
             @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     </div>
 }
 
 <!-- Bienvenida -->
 <div class="mb-4">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
         <div class="text-start">
             <h1 class="display-5 fw-semibold mb-2" style="color:#1e7e34;">
                 Bienvenido a CIVS
             </h1>
             <p class="fs-5 mb-0 text-muted">Clínica Integral Vida Sana, S.A.</p>
         </div>
-        <div class="text-muted small">
-            @DateTime.Today.ToString("dddd, dd 'de' MMMM 'de' yyyy")
+
+        <!-- Panel temporal para revisar hora del sistema en Azure -->
+        <div class="text-muted small text-end border rounded-3 bg-light p-3" style="min-width:310px;">
+            <div class="fw-semibold mb-1" style="color:#1e7e34;">
+                Diagnóstico de hora
+            </div>
+
+            <div>
+                <strong>Hora Guatemala:</strong>
+                @ahoraGuatemala.ToString("dd/MM/yyyy HH:mm:ss")
+            </div>
+
+            <div>
+                <strong>Hora servidor:</strong>
+                @horaServidor.ToString("dd/MM/yyyy HH:mm:ss")
+            </div>
+
+            <div>
+                <strong>UTC:</strong>
+                @horaUtc.ToString("dd/MM/yyyy HH:mm:ss")
+            </div>
+
+            <div>
+                <strong>Zona servidor:</strong>
+                @zonaServidor.Id
+            </div>
         </div>
     </div>
 </div>
@@ -33,12 +79,17 @@
 @if (esMedico)
 {
     <div class="bg-white border rounded-4 shadow-sm p-4 mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <div>
                 <h3 class="fw-semibold mb-1" style="color:#1e7e34;">Mis citas</h3>
                 <p class="text-muted small mb-0">
                     El botón <strong>🩺 Atender</strong> aparece 10 minutos antes del horario de tu cita.
                 </p>
+            </div>
+
+            <div class="text-muted small text-end">
+                <div><strong>Fecha:</strong> @ahoraGuatemala.ToString("dddd, dd 'de' MMMM 'de' yyyy")</div>
+                <div><strong>Hora actual:</strong> @ahoraGuatemala.ToString("HH:mm:ss")</div>
             </div>
         </div>
 
@@ -54,27 +105,33 @@
                             <th>Horario</th>
                             <th>Motivo</th>
                             <th>Estado</th>
-                            <th></th>
+                            <th class="text-end">Acción</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         @foreach (var c in Model)
                         {
-                            var ahoraLocal = DateTime.Now;
                             var margenAntes = c.CitaFechaInicio.AddMinutes(-10);
                             var margenDespues = c.CitaFechafin;
-                            var enHorario = ahoraLocal >= margenAntes && ahoraLocal <= margenDespues;
+                            var enHorario = ahoraGuatemala >= margenAntes && ahoraGuatemala <= margenDespues;
+                            var antesDeHorario = ahoraGuatemala < margenAntes;
+                            var horarioFinalizado = ahoraGuatemala > margenDespues;
+                            var motivo = c.CitaMotivo ?? string.Empty;
 
                             <tr>
                                 <td>
                                     <span class="fw-semibold">
-                                        @c.Paciente.PacienteNombres @c.Paciente.PacienteApellido
+                                        @c.Paciente?.PacienteNombres @c.Paciente?.PacienteApellido
                                     </span>
                                     <br />
-                                    <span class="text-muted small">@c.Paciente.PacienteDPI</span>
+                                    <span class="text-muted small">@c.Paciente?.PacienteDPI</span>
                                 </td>
-                                <td>@c.Medico.Especialidad?.EspecialidadNombre</td>
+
+                                <td>@c.Medico?.Especialidad?.EspecialidadNombre</td>
+
                                 <td>@c.CitaFechaInicio.ToString("dd/MM/yyyy")</td>
+
                                 <td>
                                     <span class="fw-semibold">
                                         @c.CitaFechaInicio.ToString("HH:mm")
@@ -83,32 +140,37 @@
                                         — @c.CitaFechafin.ToString("HH:mm")
                                     </span>
                                 </td>
+
                                 <td class="text-muted small">
-                                    @(c.CitaMotivo.Length > 50
-                                                            ? c.CitaMotivo[..50] + "..."
-                                                            : c.CitaMotivo)
-                    </td>
-                    <td>
-                        @switch (c.EstadoCita)
+                                    @(motivo.Length > 50 ? motivo[..50] + "..." : motivo)
+                                </td>
+
+                                <td>
+                                    @switch (c.EstadoCita)
                                     {
                                         case CIVS.Models.EstadoCita.programada:
                                             <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Programada</span>
                                             break;
+
                                         case CIVS.Models.EstadoCita.confirmada:
                                             <span class="badge bg-info-subtle text-info border border-info-subtle">Confirmada</span>
                                             break;
+
                                         case CIVS.Models.EstadoCita.cancelada:
                                             <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Cancelada</span>
                                             break;
+
                                         case CIVS.Models.EstadoCita.atendida:
                                             <span class="badge bg-success-subtle text-success border border-success-subtle">Atendida</span>
                                             break;
+
                                         case CIVS.Models.EstadoCita.noAsistio:
                                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle">No asistió</span>
                                             break;
                                     }
                                 </td>
-                                <td>
+
+                                <td class="text-end">
                                     @if (c.EstadoCita == CIVS.Models.EstadoCita.atendida)
                                     {
                                         <a asp-controller="Consulta"
@@ -121,7 +183,7 @@
                                     else if (c.EstadoCita == CIVS.Models.EstadoCita.programada ||
                                     c.EstadoCita == CIVS.Models.EstadoCita.confirmada)
                                     {
-                                        @if (enHorario)
+                                        if (enHorario)
                                         {
                                             <a asp-controller="Consulta"
                                                asp-action="IniciarConsulta"
@@ -130,13 +192,13 @@
                                                 🩺 Atender
                                             </a>
                                         }
-                                        else if (ahoraLocal < margenAntes)
+                                        else if (antesDeHorario)
                                         {
                                             <span class="text-muted small">
                                                 Disponible a las @c.CitaFechaInicio.ToString("HH:mm")
                                             </span>
                                         }
-                                        else
+                                        else if (horarioFinalizado)
                                         {
                                             <span class="text-muted small">Horario finalizado</span>
                                         }
@@ -146,7 +208,7 @@
                         }
                     </tbody>
                 </table>
-            </div> 
+            </div>
         }
         else
         {
@@ -155,4 +217,24 @@
             </div>
         }
     </div>
+}
+else
+{
+    <div class="bg-white border rounded-4 shadow-sm p-4 mt-4">
+        <h3 class="fw-semibold mb-2" style="color:#1e7e34;">Panel principal</h3>
+        <p class="text-muted mb-0">
+            Selecciona un módulo desde el menú para continuar.
+        </p>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        setTimeout(function () {
+            document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
+                .forEach(function (alertEl) {
+                    bootstrap.Alert.getOrCreateInstance(alertEl).close();
+                });
+        }, 3000);
+    </script>
 }
