@@ -23,20 +23,28 @@ namespace CIVS.Controllers
         [HttpGet]
         [AllowAnonymous]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public async Task<IActionResult> Login()
+        public IActionResult Login(string? returnUrl = null)
         {
             TempData.Clear();
-
-            // Si hay una sesión vieja, la cerramos para evitar cookies/token viejos.
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            }
 
             Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
             Response.Headers["Pragma"] = "no-cache";
             Response.Headers["Expires"] = "0";
 
+            // Si ya está autenticado, NO cerrar sesión.
+            // Solo redirigirlo a su módulo principal.
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return LocalRedirect(returnUrl);
+
+                if (User.IsInRole("Contabilidad") || User.IsInRole("Cajero"))
+                    return RedirectToAction("Index", "CorteCaja");
+
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewBag.ReturnUrl = returnUrl;
             return View();
         }
 
@@ -44,13 +52,18 @@ namespace CIVS.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(string usernameOrEmail, string password, bool rememberMe = false)
+        public async Task<IActionResult> Login(
+            string usernameOrEmail,
+            string password,
+            bool rememberMe = false,
+            string? returnUrl = null)
         {
             TempData.Clear();
 
             if (string.IsNullOrWhiteSpace(usernameOrEmail) || string.IsNullOrWhiteSpace(password))
             {
                 ViewBag.Error = "Ingresá tu usuario y contraseña.";
+                ViewBag.ReturnUrl = returnUrl;
                 return View();
             }
 
@@ -67,10 +80,10 @@ namespace CIVS.Controllers
             if (usuario == null || !VerificarPassword(password, usuario.UsuarioPasswordHash))
             {
                 ViewBag.Error = "Usuario o contraseña incorrectos.";
+                ViewBag.ReturnUrl = returnUrl;
                 return View();
             }
 
-            // Generar token único de sesión.
             var sessionToken = GenerarTokenSesion();
 
             var tokenExpiry = rememberMe
@@ -102,13 +115,16 @@ namespace CIVS.Controllers
             {
                 IsPersistent = rememberMe,
                 ExpiresUtc = tokenExpiry,
-                AllowRefresh = false
+                AllowRefresh = true
             };
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 principal,
                 properties);
+
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return LocalRedirect(returnUrl);
 
             var rolesUsuario = usuario.UsuarioRoles
                 .Where(ur => ur.UsuarioRolEstado)
