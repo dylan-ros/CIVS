@@ -2,6 +2,7 @@
 using CIVS.Data;
 using CIVS.Models;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -76,6 +77,118 @@ namespace CIVS.Controllers
             TempData["Success"] = $"{medicamento.MedicamentoNombre} registrado exitosamente.";
             return RedirectToAction(nameof(CrearMedicamentoInsumo));
 
+        }
+
+
+        // GET: EditarMedicamentoInsumo/5
+        public async Task<IActionResult> EditarMedicamentoInsumo(int id)
+        {
+            var medicamento = await _context.Medicamentos.FindAsync(id);
+
+            if (medicamento == null)
+                return NotFound();
+
+            return View(medicamento); // Views/TuControlador/EditarMedicamentoInsumo.cshtml
+        }
+
+        // POST: EditarMedicamentoInsumo/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditarMedicamentoInsumo(int id, Medicamento datos)
+        {
+            var medicamento = await _context.Medicamentos.FindAsync(id);
+
+            if (medicamento == null)
+                return NotFound();
+
+            if (!ModelState.IsValid)
+                return View(datos);
+
+            medicamento.MedicamentoNombre = datos.MedicamentoNombre;
+            medicamento.MedicamentoPresentacion = datos.MedicamentoPresentacion;
+            medicamento.MedicamentoConcentracion = datos.MedicamentoConcentracion;
+            medicamento.MedicamentoUnidad = datos.MedicamentoUnidad;
+            medicamento.MedicamentoPrecio = datos.MedicamentoPrecio;
+
+            await RegistrarAuditoriaAsync(
+                "UPDATE",
+                "Medicamento",
+                medicamento.MedicamentoId.ToString(),
+                $"Editó el medicamento/insumo: {medicamento.MedicamentoNombre}."
+            );
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Medicamento actualizado exitosamente.";
+            return RedirectToAction(nameof(Index), new { q = medicamento.MedicamentoNombre });
+        }
+
+        // POST: ActivarDesactivarMedicamento/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ActivarDesactivarMedicamento(int id)
+        {
+            var medicamento = await _context.Medicamentos.FindAsync(id);
+
+            if (medicamento == null)
+                return NotFound();
+
+            medicamento.MedicamentoEstado = !medicamento.MedicamentoEstado;
+
+            string accion = medicamento.MedicamentoEstado ? "ACTIVATE" : "DEACTIVATE";
+            string estadoTexto = medicamento.MedicamentoEstado ? "activó" : "desactivó";
+
+            await RegistrarAuditoriaAsync(
+                accion,
+                "Medicamento",
+                medicamento.MedicamentoId.ToString(),
+                $"El usuario {estadoTexto} el medicamento/insumo: {medicamento.MedicamentoNombre}."
+            );
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = medicamento.MedicamentoEstado
+                ? "Medicamento activado exitosamente."
+                : "Medicamento desactivado exitosamente.";
+
+            return RedirectToAction(nameof(Index), new { q = medicamento.MedicamentoNombre });
+        }
+
+        // ── Helpers de auditoría ────────────────────────────────────────────────
+        private async Task RegistrarAuditoriaAsync(string accion, string entidad, string entidadId, string descripcion)
+        {
+            var usuarioId = await ObtenerUsuarioActualIdAsync();
+
+            _context.Auditorias.Add(new Auditoria
+            {
+                UsuarioId = usuarioId,
+                AuditoriaAccion = accion,
+                AuditoriaEntidad = entidad,
+                AuditoriaEntidadId = entidadId,
+                AuditoriaDescripcion = descripcion,
+                AuditoriaFecha = DateTime.Now
+            });
+        }
+        
+        private async Task<int?> ObtenerUsuarioActualIdAsync()
+        {
+            var username = User.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                username =
+                    User.FindFirst(ClaimTypes.Name)?.Value ??
+                    User.FindFirst(ClaimTypes.Email)?.Value ??
+                    User.FindFirst("UsuarioUsername")?.Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(username))
+                return null;
+
+            return await _context.Usuarios
+                .Where(u => u.UsuarioUsername == username || u.UsuarioEmail == username)
+                .Select(u => (int?)u.UsuarioId)
+                .FirstOrDefaultAsync();
         }
 
     }

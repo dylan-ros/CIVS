@@ -228,7 +228,7 @@ namespace CIVS.Controllers
             ViewBag.Hasta = hasta?.ToString("yyyy-MM-dd");
             ViewBag.Acciones = new SelectList(new[]
             {
-                "LOGIN", "LOGOUT", "CREATE", "UPDATE", "DELETE"
+                "LOGIN", "LOGOUT", "CREATE", "UPDATE", "DELETE", "ACTIVATE", "DEACTIVATE"
             });
 
             return View(auditorias);

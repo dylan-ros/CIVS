@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using CIVS.Models;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -92,6 +93,17 @@ namespace CIVS.Controllers
 
             usuario.SessionToken = sessionToken;
             usuario.SessionTokenExpiry = tokenExpiry;
+
+            _context.Auditorias.Add(new Auditoria
+            {
+                UsuarioId = usuario.UsuarioId,
+                AuditoriaAccion = "LOGIN",
+                AuditoriaEntidad = "Usuario",
+                AuditoriaEntidadId = usuario.UsuarioId.ToString(),
+                AuditoriaDescripcion = $"El usuario '{usuario.UsuarioUsername}' inició sesión en el sistema.",
+                AuditoriaFecha = DateTime.Now
+            });
+
             await _context.SaveChangesAsync();
 
             var claims = new List<Claim>
@@ -145,6 +157,24 @@ namespace CIVS.Controllers
         public async Task<IActionResult> Logout()
         {
             TempData.Clear();
+
+            var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var username = User.Identity?.Name ?? "Usuario desconocido";
+
+            if (int.TryParse(usuarioIdClaim, out int usuarioId))
+            {
+                _context.Auditorias.Add(new Auditoria
+                {
+                    UsuarioId = usuarioId,
+                    AuditoriaAccion = "LOGOUT",
+                    AuditoriaEntidad = "Usuario",
+                    AuditoriaEntidadId = usuarioId.ToString(),
+                    AuditoriaDescripcion = $"El usuario '{username}' cerró sesión en el sistema.",
+                    AuditoriaFecha = DateTime.Now
+                });
+
+                await _context.SaveChangesAsync();
+            }
 
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 

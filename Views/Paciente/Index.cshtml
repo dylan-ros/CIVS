@@ -82,6 +82,8 @@
                             <th>Correo</th>
                             <th>Dirección</th>
                             <th>Fecha nac.</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -92,8 +94,41 @@
                                 <td>@p.PacienteNombres @p.PacienteApellido</td>
                                 <td>@p.PacienteTelefono</td>
                                 <td>@(string.IsNullOrWhiteSpace(p.PacienteCorreo) ? "-" : p.PacienteCorreo)</td>
-                                <td class="text-muted">@((string.IsNullOrWhiteSpace(p.PacienteDireccion) ? "-" : p.PacienteDireccion))</td>
                                 <td>@p.PacienteNacimiento.ToString("dd/MM/yyyy")</td>
+
+                                <td>
+                                    @if (p.PacienteEstado)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            Activo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                            Inactivo
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="text-end">
+                                    <a asp-action="EditarPaciente"
+                                       asp-route-id="@p.PacienteId"
+                                       class="btn btn-sm btn-outline-primary">
+                                        Editar
+                                    </a>
+
+                                    <form asp-action="ActivarDesactivar" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@p.PacienteId" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm @(p.PacienteEstado ? "btn-outline-secondary" : "btn-outline-success")"
+                                                onclick="return confirm('@(p.PacienteEstado ? "¿Desactivar este paciente?" : "¿Activar este paciente?")')">
+                                            @(p.PacienteEstado ? "Desactivar" : "Activar")
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         }
                     </tbody>
