@@ -1,27 +1,23 @@
-﻿@model List<CIVS.Models.Medicamento>
+﻿@model List<CIVS.Models.OrdenExamen>
 
 @{
-    ViewData["Title"] = "Medicamentos e insumos";
+    ViewData["Title"] = "Consulta de órdenes de examen";
     var q = ViewBag.Q as string;
 }
 
 @if (TempData["Success"] != null)
 {
-    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
-        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
-            @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-        </div>
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 
 @if (TempData["Error"] != null)
 {
-    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
-        <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
-            @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-        </div>
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 
@@ -33,23 +29,23 @@
             <div class="d-flex align-items-center gap-2">
                 <span class="badge rounded-pill"
                       style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
-                    Farmacia
+                    Laboratorio
                 </span>
-                <span class="text-muted small">Medicamentos e Insumos</span>
+                <span class="text-muted small">Órdenes de examen</span>
             </div>
 
             <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
-                Consulta de medicamentos e insumos
+                Consulta de órdenes
             </h2>
 
             <p class="text-muted mb-0">
-                Buscá por nombre, presentación, concentración o unidad.
+                Buscá órdenes por paciente, DPI o tipo de examen.
             </p>
         </div>
 
         <div class="d-flex gap-2">
-            <a asp-action="CrearMedicamentoInsumo" class="btn btn-primary">
-                + Nuevo medicamento
+            <a asp-controller="Laboratorio" asp-action="CrearOrden" class="btn btn-primary">
+                + Nueva orden
             </a>
         </div>
     </div>
@@ -57,13 +53,13 @@
     <hr class="my-3" />
 
     <!-- Buscador -->
-    <form asp-action="Index" method="get" class="row g-2 align-items-end mb-3">
+    <form method="get" asp-controller="Laboratorio" asp-action="Index" class="row g-2 align-items-end mb-3">
         <div class="col-12 col-md-6">
             <label class="form-label">Buscar</label>
             <input name="q"
                    value="@q"
                    class="form-control"
-                   placeholder="Ej. Amoxicilina, Tabletas, 500 mg..." />
+                   placeholder="Ej. Diana, Hemograma, DPI..." />
         </div>
 
         <div class="col-12 col-md-auto">
@@ -73,23 +69,17 @@
         </div>
 
         <div class="col-12 col-md-auto">
-            <a asp-action="Index" class="btn btn-outline-secondary w-100">
+            <a asp-controller="Laboratorio" asp-action="Index" class="btn btn-outline-secondary w-100">
                 Limpiar
             </a>
         </div>
     </form>
 
     <!-- Resultados -->
-    @if (string.IsNullOrWhiteSpace(q))
+    @if (Model == null || !Model.Any())
     {
         <div class="alert alert-light border mb-0">
-            Ingresá un término de búsqueda para consultar medicamentos e insumos.
-        </div>
-    }
-    else if (Model == null || !Model.Any())
-    {
-        <div class="alert alert-light border mb-0">
-            No se encontraron resultados para: <strong>@q</strong>.
+            No se encontraron órdenes de examen.
         </div>
     }
     else
@@ -98,83 +88,112 @@
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>Nombre</th>
-                        <th>Presentación</th>
-                        <th>Concentración</th>
-                        <th>Unidad</th>
-                        <th>Precio</th>
+                        <th>No. orden</th>
+                        <th>Paciente</th>
+                        <th>DPI</th>
+                        <th>Examen</th>
+                        <th>Fecha</th>
                         <th>Estado</th>
                         <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    @foreach (var m in Model)
+                    @foreach (var orden in Model)
                     {
+                        var paciente = orden.Consulta?.Cita?.Paciente;
+                        var examen = orden.Examen;
+
                         <tr>
                             <td class="fw-semibold">
-                                @m.MedicamentoNombre
+                                #@orden.OrdenExamenId
                             </td>
 
                             <td>
-                                @(string.IsNullOrWhiteSpace(m.MedicamentoPresentacion)
-                                                        ? "-"
-                                                        : m.MedicamentoPresentacion)
-                                                                                </td>
-
-                            <td>
-                                @(string.IsNullOrWhiteSpace(m.MedicamentoConcentracion)
-                                                        ? "-"
-                                                        : m.MedicamentoConcentracion)
-                                                                                 </td>
-
-                            <td>
-                                @(string.IsNullOrWhiteSpace(m.MedicamentoUnidad)
-                                                        ? "-"
-                                                        : m.MedicamentoUnidad)
-                                                                          </td>
-
-                            <td>
-                                @(m.MedicamentoPrecio.HasValue
-                                                        ? "Q " + m.MedicamentoPrecio.Value.ToString("0.00")
-                                                        : "-")
-                    </td>
-
-                            <td>
-                        @if (m.MedicamentoEstado)
+                                @if (paciente != null)
                                 {
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        Activo
-                                    </span>
+                                    <span>@paciente.PacienteNombres @paciente.PacienteApellido</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                                        Inactivo
-                                    </span>
+                                    <span class="text-muted">Sin paciente</span>
+                                }
+                            </td>
+
+                            <td>
+                                @if (paciente != null)
+                                {
+                                    <span>@paciente.PacienteDPI</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+
+                            <td>
+                                @if (examen != null)
+                                {
+                                    <span>@examen.ExamenNombre</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Sin examen</span>
+                                }
+                            </td>
+
+                            <td>
+                                @orden.OrdenFecha.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+
+                            <td>
+                                @switch (orden.OrdenEstado)
+                                {
+                                    case CIVS.Models.EstadoOrdenExamen.Solicitado:
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                            Solicitado
+                                        </span>
+                                        break;
+
+                                    case CIVS.Models.EstadoOrdenExamen.Tomado:
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                            Tomado
+                                        </span>
+                                        break;
+
+                                    case CIVS.Models.EstadoOrdenExamen.Procesado:
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                            Procesado
+                                        </span>
+                                        break;
+
+                                    case CIVS.Models.EstadoOrdenExamen.Entregado:
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            Entregado
+                                        </span>
+                                        break;
+
+                                    case CIVS.Models.EstadoOrdenExamen.Cancelado:
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                            Cancelado
+                                        </span>
+                                        break;
+
+                                    default:
+                                        <span class="badge bg-light text-muted border">
+                                            @orden.OrdenEstado
+                                        </span>
+                                        break;
                                 }
                             </td>
 
                             <td class="text-end">
-                                <a asp-action="EditarMedicamentoInsumo"
-                                   asp-route-id="@m.MedicamentoId"
-                                   class="btn btn-sm btn-outline-primary">
-                                    Editar
+                                <a asp-controller="Laboratorio"
+                                   asp-action="Detalle"
+                                   asp-route-id="@orden.OrdenExamenId"
+                                   class="btn btn-sm btn-outline-success">
+                                    Ver detalle
                                 </a>
-
-                                <form asp-action="ActivarDesactivarMedicamento"
-                                      method="post"
-                                      class="d-inline">
-                                    @Html.AntiForgeryToken()
-
-                                    <input type="hidden" name="id" value="@m.MedicamentoId" />
-
-                                    <button type="submit"
-                                            class="btn btn-sm @(m.MedicamentoEstado ? "btn-outline-secondary" : "btn-outline-success")"
-                                            onclick="return confirm('@(m.MedicamentoEstado ? "¿Desactivar este medicamento o insumo?" : "¿Activar este medicamento o insumo?")')">
-                                        @(m.MedicamentoEstado ? "Desactivar" : "Activar")
-                                    </button>
-                                </form>
                             </td>
                         </tr>
                     }
@@ -183,10 +202,9 @@
         </div>
 
         <p class="text-muted small mb-0 mt-2">
-            @Model.Count resultado(s) encontrado(s) para «@q».
+            @Model.Count orden(es) encontrada(s).
         </p>
     }
-
 </div>
 
 @section Scripts {
