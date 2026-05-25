@@ -5,6 +5,26 @@
     var q = ViewBag.Q as string;
 }
 
+@if (TempData["Success"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    </div>
+}
+
 <div class="bg-white border rounded-4 shadow-sm p-4">
 
     <!-- Encabezado -->
@@ -17,32 +37,49 @@
                 </span>
                 <span class="text-muted small">Medicamentos e Insumos</span>
             </div>
+
             <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
                 Consulta de medicamentos e insumos
             </h2>
+
             <p class="text-muted mb-0">
                 Buscá por nombre, presentación, concentración o unidad.
             </p>
         </div>
+
         <div class="d-flex gap-2">
-            <a asp-action="CrearMedicamentoInsumo" class="btn btn-primary">+ Nuevo medicamento</a>
+            <a asp-controller="Medicamento"
+               asp-action="CrearMedicamentoInsumo"
+               class="btn btn-primary">
+                + Nuevo medicamento
+            </a>
         </div>
     </div>
 
     <hr class="my-3" />
 
     <!-- Buscador -->
-    <form method="get" class="row g-2 align-items-end mb-3">
+    <form asp-controller="Medicamento" asp-action="Index" method="get" class="row g-2 align-items-end mb-3">
         <div class="col-12 col-md-6">
             <label class="form-label">Buscar</label>
-            <input name="q" value="@q" class="form-control"
+            <input name="q"
+                   value="@q"
+                   class="form-control"
                    placeholder="Ej. Amoxicilina, Tabletas, 500 mg..." />
         </div>
+
         <div class="col-12 col-md-auto">
-            <button type="submit" class="btn btn-outline-primary w-100">Buscar</button>
+            <button type="submit" class="btn btn-outline-primary w-100">
+                Buscar
+            </button>
         </div>
+
         <div class="col-12 col-md-auto">
-            <a asp-action="Index" class="btn btn-outline-secondary w-100">Limpiar</a>
+            <a asp-controller="Medicamento"
+               asp-action="Index"
+               class="btn btn-outline-secondary w-100">
+                Limpiar
+            </a>
         </div>
     </form>
 
@@ -71,22 +108,55 @@
                         <th>Unidad</th>
                         <th>Precio</th>
                         <th>Estado</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     @foreach (var m in Model)
                     {
+                        var textoConfirmacion = m.MedicamentoEstado
+                        ? "¿Desactivar este medicamento o insumo?"
+                        : "¿Activar este medicamento o insumo?";
+
+                        var textoBoton = m.MedicamentoEstado
+                        ? "Desactivar"
+                        : "Activar";
+
+                        var claseBoton = m.MedicamentoEstado
+                        ? "btn-outline-secondary"
+                        : "btn-outline-success";
+
                         <tr>
-                            <td class="fw-semibold">@m.MedicamentoNombre</td>
-                            <td>@(string.IsNullOrWhiteSpace(m.MedicamentoPresentacion) ? "-" : m.MedicamentoPresentacion)</td>
-                            <td>@(string.IsNullOrWhiteSpace(m.MedicamentoConcentracion) ? "-" : m.MedicamentoConcentracion)</td>
-                            <td>@(string.IsNullOrWhiteSpace(m.MedicamentoUnidad) ? "-" : m.MedicamentoUnidad)</td>
+                            <td class="fw-semibold">
+                                @m.MedicamentoNombre
+                            </td>
+
+                            <td>
+                                @(string.IsNullOrWhiteSpace(m.MedicamentoPresentacion)
+                                                        ? "-"
+                                                        : m.MedicamentoPresentacion)
+                                                                                </td>
+
+                            <td>
+                                @(string.IsNullOrWhiteSpace(m.MedicamentoConcentracion)
+                                                        ? "-"
+                                                        : m.MedicamentoConcentracion)
+                                                                                 </td>
+
+                            <td>
+                                @(string.IsNullOrWhiteSpace(m.MedicamentoUnidad)
+                                                        ? "-"
+                                                        : m.MedicamentoUnidad)
+                                                                          </td>
+
                             <td>
                                 @(m.MedicamentoPrecio.HasValue
                                                         ? "Q " + m.MedicamentoPrecio.Value.ToString("0.00")
                                                         : "-")
                     </td>
-                    <td>
+
+                            <td>
                         @if (m.MedicamentoEstado)
                                 {
                                     <span class="badge bg-success-subtle text-success border border-success-subtle">
@@ -100,14 +170,54 @@
                                     </span>
                                 }
                             </td>
+
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2 flex-wrap">
+
+                                    <a asp-controller="Medicamento"
+                                       asp-action="EditarMedicamentoInsumo"
+                                       asp-route-id="@m.MedicamentoId"
+                                       class="btn btn-sm btn-outline-primary">
+                                        Editar
+                                    </a>
+
+                                    <form asp-controller="Medicamento"
+                                          asp-action="ActivarDesactivarMedicamento"
+                                          method="post"
+                                          class="d-inline">
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden" name="id" value="@m.MedicamentoId" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm @claseBoton"
+                                                onclick="return confirm('@textoConfirmacion')">
+                                            @textoBoton
+                                        </button>
+                                    </form>
+
+                                </div>
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+
         <p class="text-muted small mb-0 mt-2">
             @Model.Count resultado(s) encontrado(s) para «@q».
         </p>
     }
 
 </div>
+
+@section Scripts {
+    <script>
+        setTimeout(function () {
+            document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
+                .forEach(function (alertEl) {
+                    bootstrap.Alert.getOrCreateInstance(alertEl).close();
+                });
+        }, 3000);
+    </script>
+}

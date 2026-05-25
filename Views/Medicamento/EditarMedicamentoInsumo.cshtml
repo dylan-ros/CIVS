@@ -1,0 +1,163 @@
+﻿@model CIVS.Models.Medicamento
+
+@{
+    ViewData["Title"] = "Editar medicamento";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    </div>
+}
+
+<div class="bg-white border rounded-4 shadow-sm p-4 mt-3">
+
+    <!-- Encabezado -->
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge rounded-pill"
+                      style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                    Farmacia
+                </span>
+                <span class="text-muted small">Medicamentos e Insumos</span>
+            </div>
+
+            <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
+                Editar medicamento e insumo
+            </h2>
+
+            <p class="text-muted mb-0">
+                Modificá la información general del medicamento o insumo seleccionado.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-controller="Medicamento"
+               asp-action="Index"
+               asp-route-q="@Model.MedicamentoNombre"
+               class="btn btn-outline-secondary">
+                Volver
+            </a>
+        </div>
+    </div>
+
+    <hr class="my-3" />
+
+    <form asp-controller="Medicamento"
+          asp-action="EditarMedicamentoInsumo"
+          asp-route-id="@Model.MedicamentoId"
+          method="post"
+          class="row g-3">
+
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" asp-for="MedicamentoId" />
+        <input type="hidden" asp-for="MedicamentoEstado" />
+        <input type="hidden" asp-for="MedicamentoFechaRegistro" />
+
+        <div class="col-12 col-md-6">
+            <label asp-for="MedicamentoNombre" class="form-label">Nombre</label>
+            <input asp-for="MedicamentoNombre"
+                   class="form-control"
+                   placeholder="Ej. Acetaminofen" />
+            <span asp-validation-for="MedicamentoNombre" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label asp-for="MedicamentoPresentacion" class="form-label">Presentación</label>
+            <input asp-for="MedicamentoPresentacion"
+                   class="form-control"
+                   placeholder="Ej. Tabletas, Jarabe, Ampolla..." />
+            <span asp-validation-for="MedicamentoPresentacion" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <label asp-for="MedicamentoConcentracion" class="form-label">Concentración</label>
+            <input asp-for="MedicamentoConcentracion"
+                   class="form-control"
+                   placeholder="Ej. 500 mg" />
+            <span asp-validation-for="MedicamentoConcentracion" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <label asp-for="MedicamentoUnidad" class="form-label">Unidad</label>
+            <input asp-for="MedicamentoUnidad"
+                   class="form-control"
+                   placeholder="Ej. Caja x 20" />
+            <span asp-validation-for="MedicamentoUnidad" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <label asp-for="MedicamentoPrecio" class="form-label">Precio</label>
+            <div class="input-group">
+                <span class="input-group-text">Q</span>
+                <input asp-for="MedicamentoPrecio"
+                       type="number"
+                       step="0.01"
+                       min="0"
+                       class="form-control"
+                       placeholder="0.00" />
+            </div>
+            <span asp-validation-for="MedicamentoPrecio" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12">
+            <div class="alert alert-light border mb-0">
+                <strong>Estado actual:</strong>
+                @if (Model.MedicamentoEstado)
+                {
+                    <span class="badge bg-success-subtle text-success border border-success-subtle ms-1">
+                        Activo
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-1">
+                        Inactivo
+                    </span>
+                }
+            </div>
+        </div>
+
+        <div class="col-12 d-flex gap-2 flex-wrap mt-3">
+            <button type="submit" class="btn btn-primary">
+                Guardar cambios
+            </button>
+
+            <a asp-controller="Medicamento"
+               asp-action="Index"
+               asp-route-q="@Model.MedicamentoNombre"
+               class="btn btn-outline-secondary">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        setTimeout(function () {
+            document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
+                .forEach(function (alertEl) {
+                    bootstrap.Alert.getOrCreateInstance(alertEl).close();
+                });
+        }, 3000);
+    </script>
+}

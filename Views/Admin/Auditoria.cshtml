@@ -2,10 +2,31 @@
 
 @{
     ViewData["Title"] = "Bitácora de auditoría";
+
     var q = ViewBag.Q as string;
     var accion = ViewBag.Accion as string;
     var desde = ViewBag.Desde as string;
     var hasta = ViewBag.Hasta as string;
+}
+
+@if (TempData["Success"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div style="position:fixed; top:20px; right:20px; z-index:9999; min-width:320px; max-width:420px;">
+        <div class="alert alert-danger alert-dismissible fade show shadow" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+    </div>
 }
 
 <div class="bg-white border rounded-4 shadow-sm p-4 mt-3">
@@ -18,26 +39,38 @@
                       style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
                     Administración
                 </span>
-                <span class="text-muted small">Bitácora</span>
+                <span class="text-muted small">Bitácora del sistema</span>
             </div>
+
             <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
                 Bitácora de auditoría
             </h2>
+
             <p class="text-muted mb-0">
-                Registro de todas las acciones críticas del sistema. Máximo 500 registros por consulta.
+                Registro de acciones importantes realizadas dentro del sistema CIVS.
             </p>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                Volver al panel
+            </a>
         </div>
     </div>
 
     <hr class="my-3" />
 
     <!-- Filtros -->
-    <form method="get" class="row g-2 align-items-end mb-3">
+    <form asp-action="Auditoria" method="get" class="row g-2 align-items-end mb-3">
+
         <div class="col-12 col-md-3">
             <label class="form-label">Buscar</label>
-            <input name="q" value="@q" class="form-control"
-                   placeholder="Entidad, usuario, descripción..." />
+            <input name="q"
+                   value="@q"
+                   class="form-control"
+                   placeholder="Entidad, usuario, ID o descripción..." />
         </div>
+
         <div class="col-12 col-md-2">
             <label class="form-label">Acción</label>
             <select name="accion" class="form-select">
@@ -47,29 +80,94 @@
                 <option value="CREATE" selected="@(accion == "CREATE")">CREATE</option>
                 <option value="UPDATE" selected="@(accion == "UPDATE")">UPDATE</option>
                 <option value="DELETE" selected="@(accion == "DELETE")">DELETE</option>
+                <option value="ACTIVATE" selected="@(accion == "ACTIVATE")">ACTIVATE</option>
+                <option value="DEACTIVATE" selected="@(accion == "DEACTIVATE")">DEACTIVATE</option>
             </select>
         </div>
+
         <div class="col-12 col-md-2">
             <label class="form-label">Desde</label>
-            <input type="date" name="desde" value="@desde" class="form-control" />
+            <input type="date"
+                   name="desde"
+                   value="@desde"
+                   class="form-control" />
         </div>
+
         <div class="col-12 col-md-2">
             <label class="form-label">Hasta</label>
-            <input type="date" name="hasta" value="@hasta" class="form-control" />
+            <input type="date"
+                   name="hasta"
+                   value="@hasta"
+                   class="form-control" />
         </div>
+
         <div class="col-12 col-md-auto">
-            <button type="submit" class="btn btn-outline-primary w-100">Filtrar</button>
+            <button type="submit" class="btn btn-outline-primary w-100">
+                Filtrar
+            </button>
         </div>
+
         <div class="col-12 col-md-auto">
-            <a asp-action="Auditoria" class="btn btn-outline-secondary w-100">Limpiar</a>
+            <a asp-action="Auditoria" class="btn btn-outline-secondary w-100">
+                Limpiar
+            </a>
         </div>
     </form>
+
+    <!-- Estado de búsqueda -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+
+        <div class="d-flex flex-wrap gap-2">
+            @if (!string.IsNullOrWhiteSpace(q))
+            {
+                <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle">
+                    Búsqueda: @q
+                </span>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(accion))
+            {
+                <span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle">
+                    Acción: @accion
+                </span>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(desde))
+            {
+                <span class="badge rounded-pill bg-light text-dark border">
+                    Desde: @desde
+                </span>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(hasta))
+            {
+                <span class="badge rounded-pill bg-light text-dark border">
+                    Hasta: @hasta
+                </span>
+            }
+
+            @if (string.IsNullOrWhiteSpace(q)
+                        && string.IsNullOrWhiteSpace(accion)
+                        && string.IsNullOrWhiteSpace(desde)
+                        && string.IsNullOrWhiteSpace(hasta))
+            {
+                <span class="badge rounded-pill"
+                      style="background:#e9f7ef; color:#1e7e34; border:1px solid #cfeedd;">
+                    Mostrando registros recientes
+                </span>
+            }
+        </div>
+
+        <span class="text-muted small">
+            @(Model?.Count ?? 0) registro(s) encontrado(s)
+        </span>
+    </div>
 
     <!-- Resultados -->
     @if (Model == null || !Model.Any())
     {
         <div class="alert alert-light border mb-0">
-            No se encontraron registros con los filtros aplicados.
+            No se encontraron registros de auditoría con los filtros aplicados.
         </div>
     }
     else
@@ -78,7 +176,7 @@
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>Fecha</th>
+                        <th>Fecha y hora</th>
                         <th>Acción</th>
                         <th>Entidad</th>
                         <th>ID afectado</th>
@@ -86,57 +184,123 @@
                         <th>Descripción</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     @foreach (var a in Model)
                     {
                         <tr>
-                            <td class="text-muted small">
+                            <td class="text-muted small" style="white-space:nowrap;">
                                 @a.AuditoriaFecha.ToString("dd/MM/yyyy HH:mm")
                             </td>
+
                             <td>
                                 @switch (a.AuditoriaAccion)
                                 {
                                     case "LOGIN":
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle">LOGIN</span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            LOGIN
+                                        </span>
                                         break;
+
                                     case "LOGOUT":
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">LOGOUT</span>
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                            LOGOUT
+                                        </span>
                                         break;
+
                                     case "CREATE":
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">CREATE</span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                            CREATE
+                                        </span>
                                         break;
+
                                     case "UPDATE":
-                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">UPDATE</span>
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                            UPDATE
+                                        </span>
                                         break;
+
                                     case "DELETE":
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">DELETE</span>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            DELETE
+                                        </span>
                                         break;
+
+                                    case "ACTIVATE":
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            ACTIVATE
+                                        </span>
+                                        break;
+
+                                    case "DEACTIVATE":
+                                        <span class="badge bg-dark-subtle text-dark border border-dark-subtle">
+                                            DEACTIVATE
+                                        </span>
+                                        break;
+
                                     default:
-                                        <span class="badge bg-light text-dark border">@a.AuditoriaAccion</span>
+                                        <span class="badge bg-light text-dark border">
+                                            @(string.IsNullOrWhiteSpace(a.AuditoriaAccion) ? "SIN ACCIÓN" : a.AuditoriaAccion)
+                                        </span>
                                         break;
                                 }
+                            </td>
+
+                            <td class="fw-semibold">
+                                @(string.IsNullOrWhiteSpace(a.AuditoriaEntidad) ? "—" : a.AuditoriaEntidad)
+                            </td>
+
+                            <td class="text-muted small">
+                                @(string.IsNullOrWhiteSpace(a.AuditoriaEntidadId) ? "—" : a.AuditoriaEntidadId)
+                            </td>
+
+                            <td>
+                                @if (a.Usuario != null)
+                                {
+                                    <span class="fw-semibold">
+                                        @a.Usuario.UsuarioUsername
+                                    </span>
+
+                                    @if (!string.IsNullOrWhiteSpace(a.Usuario.UsuarioEmail))
+                                    {
+                                        <br />
+                                        <span class="text-muted small">
+                                            @a.Usuario.UsuarioEmail
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        Sistema
+                                    </span>
+                                }
                         </td>
-                        <td class="fw-semibold">@a.AuditoriaEntidad</td>
-                        <td class="text-muted small">
-                            @(string.IsNullOrWhiteSpace(a.AuditoriaEntidadId) ? "—" : a.AuditoriaEntidadId)
-                        </td>
-                        <td>
-                            @(a.Usuario != null ? a.Usuario.UsuarioUsername : "Sistema")
-                        </td>
-                        <td class="text-muted small">
+
+                        <td class="text-muted small" style="min-width:260px;">
                             @(string.IsNullOrWhiteSpace(a.AuditoriaDescripcion)
                                                     ? "—"
-                                                    : (a.AuditoriaDescripcion.Length > 80
-                                                    ? a.AuditoriaDescripcion[..80] + "..."
-                                                    : a.AuditoriaDescripcion))
+                                                    : a.AuditoriaDescripcion)
                     </td>
                 </tr>
                                 }
                 </tbody>
             </table>
         </div>
+
         <p class="text-muted small mb-0 mt-2">
-            @Model.Count registro(s) encontrado(s).
+            Se muestran máximo 500 registros por consulta.
         </p>
     }
 </div>
+
+@section Scripts {
+    <script>
+        setTimeout(function () {
+            document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
+                .forEach(function (alertEl) {
+                    bootstrap.Alert.getOrCreateInstance(alertEl).close();
+                });
+        }, 3000);
+    </script>
+}
