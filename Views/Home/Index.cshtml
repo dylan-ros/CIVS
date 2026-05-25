@@ -5,16 +5,9 @@
 
     var esMedico = ViewBag.EsMedico as bool? == true;
 
-    // Hora que debe venir desde el HomeController.
-    // En el controller debes enviar: ViewBag.AhoraGuatemala = HoraGuatemala();
     DateTime ahoraGuatemala = ViewBag.AhoraGuatemala != null
         ? (DateTime)ViewBag.AhoraGuatemala
         : DateTime.UtcNow.AddHours(-6);
-
-    // Datos de diagnóstico temporal para verificar qué hora está usando Azure.
-    DateTime horaServidor = DateTime.Now;
-    DateTime horaUtc = DateTime.UtcNow;
-    TimeZoneInfo zonaServidor = TimeZoneInfo.Local;
 }
 
 @if (TempData["Success"] != null)
@@ -45,33 +38,6 @@
                 Bienvenido a CIVS
             </h1>
             <p class="fs-5 mb-0 text-muted">Clínica Integral Vida Sana, S.A.</p>
-        </div>
-
-        <!-- Panel temporal para revisar hora del sistema en Azure -->
-        <div class="text-muted small text-end border rounded-3 bg-light p-3" style="min-width:310px;">
-            <div class="fw-semibold mb-1" style="color:#1e7e34;">
-                Diagnóstico de hora
-            </div>
-
-            <div>
-                <strong>Hora Guatemala:</strong>
-                @ahoraGuatemala.ToString("dd/MM/yyyy HH:mm:ss")
-            </div>
-
-            <div>
-                <strong>Hora servidor:</strong>
-                @horaServidor.ToString("dd/MM/yyyy HH:mm:ss")
-            </div>
-
-            <div>
-                <strong>UTC:</strong>
-                @horaUtc.ToString("dd/MM/yyyy HH:mm:ss")
-            </div>
-
-            <div>
-                <strong>Zona servidor:</strong>
-                @zonaServidor.Id
-            </div>
         </div>
     </div>
 </div>
