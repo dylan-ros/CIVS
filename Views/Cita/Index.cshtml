@@ -2,9 +2,17 @@
 
 @{
     ViewData["Title"] = "Consulta de citas";
+
     var q = ViewBag.Q as string;
     var estado = ViewBag.Estado as string;
     bool esMedico = ViewBag.EsMedico == true;
+
+    // IMPORTANTE:
+    // El controller debe enviar ViewBag.AhoraGuatemala = HoraGuatemala();
+    // Esto evita que Azure compare horarios usando UTC.
+    DateTime ahora = ViewBag.AhoraGuatemala != null
+        ? (DateTime)ViewBag.AhoraGuatemala
+        : DateTime.UtcNow.AddHours(-6);
 }
 
 @if (TempData["Success"] != null)
@@ -39,15 +47,18 @@
                 </span>
                 <span class="text-muted small">Citas</span>
             </div>
+
             <h2 class="mt-2 mb-1 fw-semibold" style="color:#1e7e34; letter-spacing:.2px;">
                 @(esMedico ? "Mis citas del día" : "Consulta de citas")
             </h2>
+
             <p class="text-muted mb-0">
                 @(esMedico
                                 ? "Hacé clic en 'Atender' cuando llegue el horario de tu cita."
                                 : "Buscá por paciente, DPI, médico o motivo.")
             </p>
         </div>
+
         @if (!esMedico)
         {
             <a asp-action="CrearCitas" class="btn btn-primary">+ Nueva cita</a>
@@ -56,15 +67,18 @@
 
     <hr class="my-3" />
 
-    <!-- Buscador — solo para no médicos -->
+    <!-- Buscador: solo para no médicos -->
     @if (!esMedico)
     {
         <form method="get" class="row g-2 align-items-end mb-3">
             <div class="col-12 col-md-5">
                 <label class="form-label">Buscar</label>
-                <input name="q" value="@q" class="form-control"
+                <input name="q"
+                       value="@q"
+                       class="form-control"
                        placeholder="Ej. Juan García, 1234567890101, Dr. López..." />
             </div>
+
             <div class="col-12 col-md-3">
                 <label class="form-label">Estado</label>
                 <select name="estado" class="form-select">
@@ -76,9 +90,11 @@
                     <option value="noAsistio" selected="@(estado == "noAsistio")">No asistió</option>
                 </select>
             </div>
+
             <div class="col-12 col-md-auto">
                 <button type="submit" class="btn btn-outline-primary w-100">Buscar</button>
             </div>
+
             <div class="col-12 col-md-auto">
                 <a asp-action="Index" class="btn btn-outline-secondary w-100">Limpiar</a>
             </div>
@@ -113,69 +129,82 @@
                         <th>Horario</th>
                         <th>Motivo</th>
                         <th>Estado</th>
-                        <th></th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     @foreach (var c in Model)
                     {
-                        @* Para médicos: calcular si está en horario *@
-                        var ahoraLocal = DateTime.UtcNow.AddHours(-6);
                         var margenAntes = c.CitaFechaInicio.AddMinutes(-10);
                         var margenDespues = c.CitaFechafin.AddMinutes(30);
-                        var enHorario = ahoraLocal >= margenAntes && ahoraLocal <= margenDespues;
+                        var enHorario = ahora >= margenAntes && ahora <= margenDespues;
+                        var antesDeHorario = ahora < margenAntes;
+                        var horarioFinalizado = ahora > margenDespues;
+                        var motivo = c.CitaMotivo ?? string.Empty;
 
                         <tr>
                             <td>
                                 <span class="fw-semibold">
-                                    @c.Paciente!.PacienteNombres @c.Paciente.PacienteApellido
+                                    @c.Paciente?.PacienteNombres @c.Paciente?.PacienteApellido
                                 </span>
                                 <br />
-                                <span class="text-muted small">@c.Paciente.PacienteDPI</span>
+                                <span class="text-muted small">@c.Paciente?.PacienteDPI</span>
                             </td>
+
                             @if (!esMedico)
                             {
-                                <td>Dr. @c.Medico!.MedicoNombres @c.Medico.MedicoApellidos</td>
+                                <td>
+                                    Dr. @c.Medico?.MedicoNombres @c.Medico?.MedicoApellidos
+                                </td>
                             }
-                        <td>@c.CitaFechaInicio.ToString("dd/MM/yyyy")</td>
-                        <td>
-                            <span class="fw-semibold">
-                                @c.CitaFechaInicio.ToString("HH:mm")
-                            </span>
-                            <span class="text-muted small"> — @c.CitaFechafin.ToString("HH:mm")</span>
-                        </td>
-                        <td class="text-muted small">
-                            @(c.CitaMotivo.Length > 50
-                                                    ? c.CitaMotivo[..50] + "..."
-                                                    : c.CitaMotivo)
-                    </td>
-                    <td>
-                        @switch (c.EstadoCita)
+
+                            <td>@c.CitaFechaInicio.ToString("dd/MM/yyyy")</td>
+
+                            <td>
+                                <span class="fw-semibold">
+                                    @c.CitaFechaInicio.ToString("HH:mm")
+                                </span>
+                                <span class="text-muted small">
+                                    — @c.CitaFechafin.ToString("HH:mm")
+                                </span>
+                            </td>
+
+                            <td class="text-muted small">
+                                @(motivo.Length > 50 ? motivo[..50] + "..." : motivo)
+                            </td>
+
+                            <td>
+                                @switch (c.EstadoCita)
                                 {
                                     case CIVS.Models.EstadoCita.programada:
                                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Programada</span>
                                         break;
+
                                     case CIVS.Models.EstadoCita.confirmada:
                                         <span class="badge bg-info-subtle text-info border border-info-subtle">Confirmada</span>
                                         break;
+
                                     case CIVS.Models.EstadoCita.cancelada:
                                         <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Cancelada</span>
                                         break;
+
                                     case CIVS.Models.EstadoCita.atendida:
                                         <span class="badge bg-success-subtle text-success border border-success-subtle">Atendida</span>
                                         break;
+
                                     case CIVS.Models.EstadoCita.noAsistio:
                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle">No asistió</span>
                                         break;
                                 }
                             </td>
+
                             <td>
-                                <div class="d-flex gap-1 flex-wrap">
+                                <div class="d-flex gap-1 flex-wrap justify-content-end">
 
                                     @if (esMedico)
                                     {
-                                        @* Vista del médico: botón Atender según horario *@
-                                        @if (c.EstadoCita == CIVS.Models.EstadoCita.atendida)
+                                        if (c.EstadoCita == CIVS.Models.EstadoCita.atendida)
                                         {
                                             <a asp-controller="Consulta"
                                                asp-action="IniciarConsulta"
@@ -187,7 +216,7 @@
                                         else if (c.EstadoCita == CIVS.Models.EstadoCita.programada ||
                                         c.EstadoCita == CIVS.Models.EstadoCita.confirmada)
                                         {
-                                            @if (enHorario)
+                                            if (enHorario)
                                             {
                                                 <a asp-controller="Consulta"
                                                    asp-action="IniciarConsulta"
@@ -196,14 +225,13 @@
                                                     🩺 Atender
                                                 </a>
                                             }
-                                            else if (ahoraLocal < margenAntes)
+                                            else if (antesDeHorario)
                                             {
                                                 <span class="text-muted small">
-                                                    Disponible a las
-                                                    @c.CitaFechaInicio.ToString("HH:mm")
+                                                    Disponible a las @c.CitaFechaInicio.ToString("HH:mm")
                                                 </span>
                                             }
-                                            else
+                                            else if (horarioFinalizado)
                                             {
                                                 <span class="text-muted small">Horario finalizado</span>
                                             }
@@ -211,9 +239,7 @@
                                     }
                                     else
                                     {
-                                        @* Vista de recepcionista/admin *@
-
-                                        @if (c.EstadoCita == CIVS.Models.EstadoCita.programada)
+                                        if (c.EstadoCita == CIVS.Models.EstadoCita.programada)
                                         {
                                             <form asp-action="CambiarEstado" method="post" class="d-inline">
                                                 @Html.AntiForgeryToken()
@@ -223,18 +249,20 @@
                                                     Confirmar
                                                 </button>
                                             </form>
+
                                             <form asp-action="CambiarEstado" method="post" class="d-inline">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="id" value="@c.CitaId" />
                                                 <input type="hidden" name="estado" value="3" />
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-secondary"
                                                         onclick="return confirm('¿Cancelar esta cita?')">
                                                     Cancelar
                                                 </button>
                                             </form>
                                         }
 
-                                        @if (c.EstadoCita == CIVS.Models.EstadoCita.confirmada)
+                                        if (c.EstadoCita == CIVS.Models.EstadoCita.confirmada)
                                         {
                                             <a asp-controller="Consulta"
                                                asp-action="IniciarConsulta"
@@ -242,6 +270,7 @@
                                                class="btn btn-sm btn-success">
                                                 🩺 Iniciar consulta
                                             </a>
+
                                             <form asp-action="CambiarEstado" method="post" class="d-inline">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="id" value="@c.CitaId" />
@@ -252,7 +281,7 @@
                                             </form>
                                         }
 
-                                        @if (c.EstadoCita == CIVS.Models.EstadoCita.atendida)
+                                        if (c.EstadoCita == CIVS.Models.EstadoCita.atendida)
                                         {
                                             <a asp-controller="Consulta"
                                                asp-action="IniciarConsulta"
@@ -262,7 +291,6 @@
                                             </a>
                                         }
                                     }
-
                                 </div>
                             </td>
                         </tr>
@@ -270,18 +298,20 @@
                 </tbody>
             </table>
         </div>
+
         <p class="text-muted small mb-0 mt-2">
             @Model.Count cita(s) encontrada(s).
         </p>
     }
-
 </div>
 
 @section Scripts {
     <script>
         setTimeout(function () {
-            const alertEl = document.querySelector('.alert.alert-success, .alert.alert-danger');
-            if (alertEl) bootstrap.Alert.getOrCreateInstance(alertEl).close();
+            document.querySelectorAll('.alert.alert-success, .alert.alert-danger')
+                .forEach(function (alertEl) {
+                    bootstrap.Alert.getOrCreateInstance(alertEl).close();
+                });
         }, 3000);
     </script>
 }
