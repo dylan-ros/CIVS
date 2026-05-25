@@ -48,23 +48,27 @@
 </head>
 <body class="@(isAuthenticated ? "layout-auth" : "layout-public")">
 
-    <!-- ── NAVBAR SUPERIOR ─────────────────────────────────────── -->
+    <!-- NAVBAR SUPERIOR -->
     <header>
         <nav class="navbar navbar-light bg-white border-bottom shadow-sm px-4 py-2">
             <a class="navbar-brand fw-bold d-flex align-items-center gap-2"
-               href="@Url.Action("Index", inicioController)">
+               asp-controller="@inicioController"
+               asp-action="Index">
                 <span class="brand-logo-box">
                     <img src="~/logo-civs.png" alt="CIVS" class="brand-logo" />
                 </span>
             </a>
 
             <div class="d-flex align-items-center gap-3">
-
                 @if (isAuthenticated)
                 {
                     <div class="d-none d-lg-flex flex-column align-items-end lh-sm">
                         <span class="small fw-semibold" style="color:#1a5c38;">
                             @nombreUsuario
+                        </span>
+                        <span class="badge rounded-pill mt-1"
+                              style="background:#e9f7ef;color:#1e7e34;border:1px solid #cfeedd;font-size:.68rem;">
+                            @rolPrincipal
                         </span>
                     </div>
 
@@ -79,7 +83,7 @@
         </nav>
     </header>
 
-    <!-- ── CONTENIDO PRINCIPAL ──────────────────────────────────────────── -->
+    <!-- CONTENIDO PRINCIPAL -->
     <div class="container mt-4">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -88,11 +92,11 @@
 
     @if (isAuthenticated)
     {
-        <!-- ── DOCK INFERIOR estilo macOS ───────────────────────────────────── -->
+        <!-- DOCK INFERIOR -->
         <div id="dock-wrapper">
             <div id="dock">
 
-                <!-- Inicio -->
+                <!-- INICIO -->
                 <div class="dock-item" data-modulo="home">
                     <div class="dock-menu" id="menu-home">
                         @if ((isContabilidad || isCajero) && !isAdmin)
@@ -104,16 +108,17 @@
                             <a asp-controller="Home" asp-action="Index">Inicio</a>
                         }
                     </div>
-                    <div class="dock-icon" onclick="toggleMenu('home')" title="Inicio">
+
+                    <button type="button" class="dock-icon" onclick="toggleMenu('home')" title="Inicio">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
                             <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625c-1.036 0-1.875-.84-1.875-1.875v-6.198c.03-.028.061-.056.091-.086L12 5.43z" />
                         </svg>
                         <span>Inicio</span>
-                    </div>
+                    </button>
                 </div>
 
-                <!-- Front Office -->
+                <!-- FRONT OFFICE -->
                 @if (puedeFrontOffice)
                 {
                     <div class="dock-item" data-modulo="frontoffice">
@@ -134,16 +139,17 @@
                                 <a asp-controller="Cita" asp-action="Index">Mi agenda</a>
                             }
                         </div>
-                        <div class="dock-icon" onclick="toggleMenu('frontoffice')" title="Front Office">
+
+                        <button type="button" class="dock-icon" onclick="toggleMenu('frontoffice')" title="Front Office">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a3.375 3.375 0 116.75 0 3.375 3.375 0 01-6.75 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z" />
                             </svg>
                             <span>Front Office</span>
-                        </div>
+                        </button>
                     </div>
                 }
 
-                <!-- Farmacia -->
+                <!-- FARMACIA -->
                 @if (puedeFarmacia)
                 {
                     <div class="dock-item" data-modulo="farmacia">
@@ -152,16 +158,17 @@
                             <div class="dock-menu-divider"></div>
                             <a asp-controller="Medicamento" asp-action="CrearMedicamentoInsumo">+ Nuevo medicamento</a>
                         </div>
-                        <div class="dock-icon" onclick="toggleMenu('farmacia')" title="Farmacia">
+
+                        <button type="button" class="dock-icon" onclick="toggleMenu('farmacia')" title="Farmacia">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path fill-rule="evenodd" d="M11.828 2.25c-.916 0-1.699.663-1.85 1.567l-.091.549a.798.798 0 01-.517.608 7.45 7.45 0 00-.478.198.798.798 0 01-.796-.064l-.453-.324a1.875 1.875 0 00-2.416.2l-.243.243a1.875 1.875 0 00-.2 2.416l.324.453a.798.798 0 01.064.796 7.448 7.448 0 00-.198.478.798.798 0 01-.608.517l-.55.092a1.875 1.875 0 00-1.566 1.849v.344c0 .916.663 1.699 1.567 1.85l.549.091c.281.047.508.25.608.517.06.162.127.321.198.478a.798.798 0 01-.064.796l-.324.453a1.875 1.875 0 00.2 2.416l.243.243c.648.648 1.67.733 2.416.2l.453-.324a.798.798 0 01.796-.064c.157.071.316.137.478.198.267.1.47.327.517.608l.092.55c.15.903.932 1.566 1.849 1.566h.344c.916 0 1.699-.663 1.85-1.567l.091-.549a.798.798 0 01.517-.608 7.52 7.52 0 00.478-.198.798.798 0 01.796.064l.453.324a1.875 1.875 0 002.416-.2l.243-.243c.648-.648.733-1.67.2-2.416l-.324-.453a.798.798 0 01-.064-.796c.071-.157.137-.316.198-.478.1-.267.327-.47.608-.517l.55-.091a1.875 1.875 0 001.566-1.85v-.344c0-.916-.663-1.699-1.567-1.85l-.549-.091a.798.798 0 01-.608-.517 7.507 7.507 0 00-.198-.478.798.798 0 01.064-.796l.324-.453a1.875 1.875 0 00-.2-2.416l-.243-.243a1.875 1.875 0 00-2.416-.2l-.453.324a.798.798 0 01-.796.064 7.462 7.462 0 00-.478-.198.798.798 0 01-.608-.517l-.091-.55a1.875 1.875 0 00-1.85-1.566h-.344zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clip-rule="evenodd" />
                             </svg>
                             <span>Farmacia</span>
-                        </div>
+                        </button>
                     </div>
                 }
 
-                <!-- Laboratorio -->
+                <!-- LABORATORIO -->
                 @if (puedeLaboratorio)
                 {
                     <div class="dock-item" data-modulo="laboratorio">
@@ -176,34 +183,38 @@
                                 <a asp-controller="Laboratorio" asp-action="CrearReceta">+ Nueva receta</a>
                             }
                         </div>
-                        <div class="dock-icon" onclick="toggleMenu('laboratorio')" title="Laboratorio">
+
+                        <button type="button" class="dock-icon" onclick="toggleMenu('laboratorio')" title="Laboratorio">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10.5 3.798v5.02a3 3 0 01-.879 2.121l-2.377 2.377a9.845 9.845 0 015.091 1.013 8.315 8.315 0 005.713.636l.285-.071-3.954-3.955a3 3 0 01-.879-2.121v-5.02a23.614 23.614 0 01-3 0zm4.5.138a.75.75 0 00.093-1.495A24.837 24.837 0 0012 2.25a25.048 25.048 0 00-3.093.191A.75.75 0 009 3.936v4.882a1.5 1.5 0 01-.44 1.06l-6.293 6.291c-1.62 1.621-.903 4.475 1.471 4.88 2.686.46 5.447.698 8.262.698 2.816 0 5.576-.239 8.262-.697 2.373-.406 3.092-3.26 1.47-4.881L15.44 9.879A1.5 1.5 0 0115 8.818V4.936z" clip-rule="evenodd" />
                             </svg>
                             <span>Laboratorio</span>
-                        </div>
+                        </button>
                     </div>
                 }
 
-                <!-- Corte de Caja -->
+                <!-- CORTE DE CAJA -->
                 @if (puedeCaja)
                 {
                     <div class="dock-item" data-modulo="caja">
                         <div class="dock-menu" id="menu-caja">
                             <a asp-controller="CorteCaja" asp-action="Index">Reporte financiero</a>
+                            <a asp-controller="CorteCaja" asp-action="Facturas">Facturas</a>
+                            <a asp-controller="CorteCaja" asp-action="FacturasPendientes">Facturas pendientes</a>
                             <div class="dock-menu-divider"></div>
                             <a asp-controller="CorteCaja" asp-action="CrearFactura">+ Nueva factura</a>
                         </div>
-                        <div class="dock-icon" onclick="toggleMenu('caja')" title="Corte de Caja">
+
+                        <button type="button" class="dock-icon" onclick="toggleMenu('caja')" title="Corte de Caja">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M2.273 5.625A4.483 4.483 0 015.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 3H5.25a3 3 0 00-2.977 2.625zM2.273 8.625A4.483 4.483 0 015.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 6H5.25a3 3 0 00-2.977 2.625zM5.25 9a3 3 0 00-3 3v6a3 3 0 003 3h13.5a3 3 0 003-3v-6a3 3 0 00-3-3H5.25zm.75 6.75a.75.75 0 000 1.5h7.5a.75.75 0 000-1.5H6zm0-3a.75.75 0 000 1.5h3a.75.75 0 000-1.5H6z" />
                             </svg>
                             <span>Caja</span>
-                        </div>
+                        </button>
                     </div>
                 }
 
-                <!-- Administración -->
+                <!-- ADMINISTRACIÓN -->
                 @if (puedeAdmin)
                 {
                     <div class="dock-item" data-modulo="admin">
@@ -214,28 +225,29 @@
                             <a asp-controller="Admin" asp-action="CrearUsuario">+ Nuevo usuario</a>
                             <a asp-controller="Admin" asp-action="Auditoria">Bitácora</a>
                         </div>
-                        <div class="dock-icon" onclick="toggleMenu('admin')" title="Administración">
+
+                        <button type="button" class="dock-icon" onclick="toggleMenu('admin')" title="Administración">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clip-rule="evenodd" />
                             </svg>
                             <span>Admin</span>
-                        </div>
+                        </button>
                     </div>
                 }
             </div>
         </div>
     }
 
-    <!-- ── SCRIPTS ───────────────────────────────────────────────────────── -->
+    <!-- SCRIPTS -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
-    <!-- ── ESTILOS DEL LAYOUT Y DOCK ─────────────────────────────────────── -->
+    <!-- ESTILOS DEL LAYOUT Y DOCK -->
     <style>
         body.layout-auth {
-            padding-bottom: 100px;
+            padding-bottom: 110px;
         }
 
         body.layout-public {
@@ -274,10 +286,10 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(255, 255, 255, .86);
+            background: rgba(255, 255, 255, .90);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, .65);
+            border: 1px solid rgba(212, 228, 218, .85);
             border-radius: 24px;
             padding: 10px 16px;
             box-shadow: 0 8px 32px rgba(0,0,0,.15), 0 2px 8px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
@@ -310,6 +322,9 @@
             padding: 7px 8px;
             border-radius: 16px;
             user-select: none;
+            border: 0;
+            background: transparent;
+            font-family: inherit;
         }
 
             .dock-icon svg {
@@ -353,10 +368,6 @@
                 box-shadow: 0 4px 14px rgba(26,92,56,.32);
             }
 
-            .dock-item.activo .dock-icon::after {
-                display: none;
-            }
-
         .dock-menu {
             position: absolute;
             bottom: calc(100% + 14px);
@@ -384,9 +395,9 @@
                 left: 50%;
                 width: 12px;
                 height: 12px;
-                background: rgba(255,255,255,.94);
-                border-right: 1px solid rgba(255,255,255,.65);
-                border-bottom: 1px solid rgba(255,255,255,.65);
+                background: rgba(255,255,255,.98);
+                border-right: 1px solid rgba(212,228,218,.9);
+                border-bottom: 1px solid rgba(212,228,218,.9);
                 transform: translateX(-50%) rotate(45deg);
             }
 
@@ -527,6 +538,13 @@
                 document.querySelectorAll('.dock-item')
                     .forEach(i => i.classList.remove('activo'));
             }
+        });
+
+        document.querySelectorAll('.dock-menu a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                document.querySelectorAll('.dock-item')
+                    .forEach(i => i.classList.remove('activo'));
+            });
         });
     </script>
 
