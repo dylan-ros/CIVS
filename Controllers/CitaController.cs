@@ -193,7 +193,7 @@ namespace CIVS.Controllers
             if (cita.MedicoId == 0)
                 ModelState.AddModelError("", "Debe seleccionar un médico.");
 
-            var ahora = DateTime.Now;
+            var ahora = HoraGuatemala();
 
             if (cita.CitaFechaInicio <= ahora)
                 ModelState.AddModelError(nameof(Cita.CitaFechaInicio),
@@ -294,7 +294,7 @@ namespace CIVS.Controllers
 
             cita.EstadoCita = EstadoCita.cancelada;
             cita.CitaMotivoCancelacion = motivoCancelacion.Trim();
-            cita.CitaFechaCancelacion = DateTime.Now;
+            cita.CitaFechaCancelacion = HoraGuatemala();
 
             await _context.SaveChangesAsync();
 
@@ -306,6 +306,20 @@ namespace CIVS.Controllers
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
+
+        private static DateTime HoraGuatemala()
+        {
+            try
+            {
+                var zonaGuatemala = TimeZoneInfo.FindSystemTimeZoneById("Central America Standard Time");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zonaGuatemala);
+            }
+            catch
+            {
+                var zonaGuatemala = TimeZoneInfo.FindSystemTimeZoneById("America/Guatemala");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zonaGuatemala);
+            }
+        }
 
         private async Task CargarCombos(int? pacienteId = null, int? medicoId = null)
         {
