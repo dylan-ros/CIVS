@@ -1,15 +1,24 @@
 ﻿@{
     Layout = null;
     ViewData["Title"] = "Iniciar sesión";
+
+    var returnUrl = ViewBag.ReturnUrl as string ?? Context.Request.Query["returnUrl"].ToString();
 }
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
     <title>CIVS — Iniciar sesión</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -24,7 +33,6 @@
             font-family: 'Segoe UI', system-ui, sans-serif;
         }
 
-        /* ── Panel izquierdo ── */
         .panel-izq {
             flex: 1;
             background: linear-gradient(160deg, #1a5c38 0%, #2d8653 60%, #3cb371 100%);
@@ -106,10 +114,10 @@
 
         .panel-sub {
             font-size: .95rem;
-            color: rgba(255,255,255,.72);
+            color: rgba(255,255,255,.78);
             font-weight: 300;
             line-height: 1.7;
-            max-width: 340px;
+            max-width: 380px;
             position: relative;
             z-index: 1;
         }
@@ -125,17 +133,18 @@
             color: rgba(255,255,255,.88);
             font-size: .82rem;
             width: fit-content;
-            margin-top: 10px;
+            margin-top: 18px;
+            position: relative;
+            z-index: 1;
         }
 
             .modulo-chip .dot {
-                width: 6px;
-                height: 6px;
+                width: 7px;
+                height: 7px;
                 border-radius: 50%;
-                background: #3cb371;
+                background: #b7f7cf;
             }
 
-        /* ── Panel derecho ── */
         .panel-der {
             width: 460px;
             min-height: 100vh;
@@ -158,6 +167,19 @@
                 opacity: 1;
                 transform: translateX(0);
             }
+        }
+
+        .login-title {
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: #1a2e22;
+            margin-bottom: 6px;
+        }
+
+        .login-subtitle {
+            color: #6b8f7a;
+            font-size: .88rem;
+            margin-bottom: 32px;
         }
 
         .form-label {
@@ -185,6 +207,11 @@
                 outline: none;
             }
 
+        .form-check-input:checked {
+            background-color: #2d8653;
+            border-color: #2d8653;
+        }
+
         .btn-login {
             width: 100%;
             padding: 13px;
@@ -195,12 +222,19 @@
             font-weight: 700;
             font-size: .95rem;
             cursor: pointer;
-            transition: opacity .2s;
+            transition: opacity .2s, transform .2s;
             margin-top: 8px;
         }
 
             .btn-login:hover {
-                opacity: .9;
+                opacity: .92;
+                transform: translateY(-1px);
+            }
+
+            .btn-login:disabled {
+                opacity: .65;
+                cursor: not-allowed;
+                transform: none;
             }
 
         .alerta-error {
@@ -218,20 +252,42 @@
             right: 14px;
             top: 50%;
             transform: translateY(-50%);
-            background: none;
+            background: transparent;
             border: none;
             color: #6b8f7a;
             cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
+            .toggle-pass:hover {
+                color: #2d8653;
+            }
+
+        .forgot-link {
+            color: #2d8653;
+        }
+
+            .forgot-link:hover {
+                color: #1a5c38;
+            }
+
         @@media (max-width: 900px) {
+            body {
+                display: block;
+            }
+
             .panel-izq {
-                display: none;
+                display: none !important;
             }
 
             .panel-der {
                 width: 100%;
+                min-height: 100vh;
                 padding: 48px 32px;
+                box-shadow: none;
             }
         }
     </style>
@@ -244,84 +300,105 @@
             <span class="logo-sigla">CIVS</span>
             <div class="logo-texto">
                 <span>Sistema ERP</span>
-                <span>Clínica Integral<br>Vida Sana</span>
+                <span>Clínica Integral<br />Vida Sana</span>
             </div>
         </div>
-        <h2 class="panel-titulo">Gestión clínica<br>en un solo lugar.</h2>
+
+        <h2 class="panel-titulo">Gestión clínica<br />en un solo lugar.</h2>
+
+        <p class="panel-sub">
+            Control de pacientes, citas, consultas, laboratorio, farmacia, facturación y reportes desde una plataforma centralizada.
+        </p>
+
+        <div class="modulo-chip">
+            <span class="dot"></span>
+            Acceso seguro por usuario y rol
+        </div>
     </div>
 
     <!-- Panel derecho -->
     <div class="panel-der">
-        <h1 style="font-size:1.9rem;font-weight:700;color:#1a2e22;margin-bottom:6px;">
-            Bienvenido
-        </h1>
-        <p style="color:#6b8f7a;font-size:.88rem;margin-bottom:32px;">
-            Iniciá sesión para acceder al sistema CIVS
-        </p>
+        <h1 class="login-title">Bienvenido</h1>
+        <p class="login-subtitle">Iniciá sesión para acceder al sistema CIVS</p>
 
-        @if (!string.IsNullOrEmpty(ViewBag.Error as string))
+        @if (!string.IsNullOrWhiteSpace(ViewBag.Error as string))
         {
             <div class="alerta-error">
                 ⚠️ @ViewBag.Error
             </div>
         }
 
-        <form action="/Auth/Login" method="post">
+        <form asp-controller="Auth" asp-action="Login" method="post" id="formLogin" autocomplete="on">
             @Html.AntiForgeryToken()
 
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+
             <div class="mb-3">
-                <label class="form-label">Usuario o correo</label>
-                <input type="text" name="usernameOrEmail"
+                <label class="form-label" for="usernameOrEmail">Usuario o correo</label>
+                <input type="text"
+                       name="usernameOrEmail"
+                       id="usernameOrEmail"
                        class="form-control"
                        placeholder="usuario o correo@civs.com"
-                       autocomplete="username" autofocus required />
+                       autocomplete="username"
+                       autofocus
+                       required />
             </div>
 
             <div class="mb-3 position-relative">
-                <label class="form-label">Contraseña</label>
+                <label class="form-label" for="inputPass">Contraseña</label>
+
                 <div class="position-relative">
-                    <input type="password" name="password" id="inputPass"
+                    <input type="password"
+                           name="password"
+                           id="inputPass"
                            class="form-control pe-5"
                            placeholder="••••••••"
-                           autocomplete="current-password" required />
-                    <button type="button" class="toggle-pass"
-                            onclick="togglePass()">
-                        <svg id="iconoOjo" xmlns="http://www.w3.org/2000/svg"
-                             width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173
-                                     8a13.133 13.133 0 011.66-2.043C4.12 4.668 5.88 3.5 8
-                                     3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0
-                                     0114.828 8c-.058.087-.122.183-.195.288-.335.48-.83
-                                     1.12-1.465 1.755C11.879 11.332 10.119 12.5 8
-                                     12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134
-                                     0 011.172 8z" />
-                            <path d="M8 5.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" />
+                           autocomplete="current-password"
+                           required />
+
+                    <button type="button"
+                            class="toggle-pass"
+                            onclick="togglePass()"
+                            aria-label="Mostrar u ocultar contraseña">
+                        <svg id="iconoOjo"
+                             xmlns="http://www.w3.org/2000/svg"
+                             width="18"
+                             height="18"
+                             fill="currentColor"
+                             viewBox="0 0 16 16">
+                            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" />
+                            <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z" />
                         </svg>
                     </button>
                 </div>
             </div>
 
-            <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
                 <div class="form-check mb-0">
-                    <input type="checkbox" name="rememberMe"
-                           class="form-check-input" id="chkRecordar" />
-                    <label class="form-check-label small text-muted"
-                           for="chkRecordar">
+                    <input type="checkbox"
+                           name="rememberMe"
+                           value="true"
+                           class="form-check-input"
+                           id="chkRecordar" />
+
+                    <label class="form-check-label small text-muted" for="chkRecordar">
                         Mantener sesión (7 días)
                     </label>
                 </div>
+
                 <a href="@Url.Action("OlvidePassword", "Auth")"
-                   class="small text-decoration-none"
-                   style="color:#2d8653;">
+                   class="small text-decoration-none forgot-link">
                     ¿Olvidaste tu contraseña?
                 </a>
             </div>
 
-            <button type="submit" class="btn-login">Iniciar sesión</button>
+            <button type="submit" class="btn-login" id="btnLogin">
+                Iniciar sesión
+            </button>
         </form>
 
-        <p class="text-center text-muted mt-4 mb-0"
-           style="font-size:.75rem;">
+        <p class="text-center text-muted mt-4 mb-0" style="font-size:.75rem;">
             &copy; 2026 — CIVS · Clínica Integral Vida Sana, S.A.
         </p>
     </div>
@@ -329,8 +406,14 @@
     <script>
         function togglePass() {
             const input = document.getElementById('inputPass');
-            input.type  = input.type === 'password' ? 'text' : 'password';
+            input.type = input.type === 'password' ? 'text' : 'password';
         }
+
+        document.getElementById('formLogin').addEventListener('submit', function () {
+            const btn = document.getElementById('btnLogin');
+            btn.disabled = true;
+            btn.innerText = 'Ingresando...';
+        });
     </script>
 </body>
 </html>

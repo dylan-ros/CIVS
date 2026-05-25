@@ -1,5 +1,4 @@
 ﻿using CIVS.Data;
-using CIVS.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,14 +7,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null
+            );
+        }
+    ));
 
 builder.Services.AddAntiforgery(options =>
 {
-    options.Cookie.Name = ".CIVS7173.Antiforgery";
+    options.Cookie.Name = "CIVS.Antiforgery";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -25,13 +34,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LogoutPath = "/Auth/Logout";
         options.AccessDeniedPath = "/Auth/AccesoDenegado";
 
-        options.Cookie.Name = ".CIVS7173.Auth";
+        options.Cookie.Name = "CIVS.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.IsEssential = true;
 
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
-        options.SlidingExpiration = false;
+        options.SlidingExpiration = true;
     });
 
 var app = builder.Build();
@@ -53,7 +63,9 @@ app.UseRouting();
 
 app.UseAuthentication();
 
-app.UseSessionTokenValidation();
+// IMPORTANTE:
+// No uses esto por ahora porque te está cerrando la sesión en Azure.
+// app.UseSessionTokenValidation();
 
 app.UseAuthorization();
 
