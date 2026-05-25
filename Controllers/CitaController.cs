@@ -87,6 +87,8 @@ namespace CIVS.Controllers
             ViewBag.Q = q;
             ViewBag.Estado = estado;
             ViewBag.EsMedico = User.IsInRole("Medico");
+            ViewBag.AhoraGuatemala = HoraGuatemala();
+
             return View(citas);
         }
 
@@ -234,7 +236,7 @@ namespace CIVS.Controllers
             }
 
             cita.EstadoCita = EstadoCita.programada;
-            cita.CitaFechaCreada = DateTime.UtcNow;
+            cita.CitaFechaCreada = HoraGuatemala();
 
             _context.Citas.Add(cita);
             await _context.SaveChangesAsync();
@@ -311,13 +313,20 @@ namespace CIVS.Controllers
         {
             try
             {
-                var zonaGuatemala = TimeZoneInfo.FindSystemTimeZoneById("Central America Standard Time");
-                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zonaGuatemala);
+                var zona = TimeZoneInfo.FindSystemTimeZoneById("Central America Standard Time");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zona);
             }
             catch
             {
-                var zonaGuatemala = TimeZoneInfo.FindSystemTimeZoneById("America/Guatemala");
-                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zonaGuatemala);
+                try
+                {
+                    var zona = TimeZoneInfo.FindSystemTimeZoneById("America/Guatemala");
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zona);
+                }
+                catch
+                {
+                    return DateTime.UtcNow.AddHours(-6);
+                }
             }
         }
 
