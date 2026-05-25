@@ -39,6 +39,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>@ViewData["Title"] - CIVS</title>
 
     <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
@@ -46,6 +47,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CIVS.styles.css" asp-append-version="true" />
 </head>
+
 <body class="@(isAuthenticated ? "layout-auth" : "layout-public")">
 
     <!-- NAVBAR SUPERIOR -->
@@ -109,7 +111,7 @@
                         }
                     </div>
 
-                    <button type="button" class="dock-icon" onclick="toggleMenu('home')" title="Inicio">
+                    <button type="button" class="dock-icon" onclick="toggleMenu('home', event)" title="Inicio">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
                             <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625c-1.036 0-1.875-.84-1.875-1.875v-6.198c.03-.028.061-.056.091-.086L12 5.43z" />
@@ -140,11 +142,11 @@
                             }
                         </div>
 
-                        <button type="button" class="dock-icon" onclick="toggleMenu('frontoffice')" title="Front Office">
+                        <button type="button" class="dock-icon" onclick="toggleMenu('frontoffice', event)" title="Front Office">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a3.375 3.375 0 116.75 0 3.375 3.375 0 01-6.75 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z" />
                             </svg>
-                            <span>Front Office</span>
+                            <span>Front</span>
                         </button>
                     </div>
                 }
@@ -159,7 +161,7 @@
                             <a asp-controller="Medicamento" asp-action="CrearMedicamentoInsumo">+ Nuevo medicamento</a>
                         </div>
 
-                        <button type="button" class="dock-icon" onclick="toggleMenu('farmacia')" title="Farmacia">
+                        <button type="button" class="dock-icon" onclick="toggleMenu('farmacia', event)" title="Farmacia">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path fill-rule="evenodd" d="M11.828 2.25c-.916 0-1.699.663-1.85 1.567l-.091.549a.798.798 0 01-.517.608 7.45 7.45 0 00-.478.198.798.798 0 01-.796-.064l-.453-.324a1.875 1.875 0 00-2.416.2l-.243.243a1.875 1.875 0 00-.2 2.416l.324.453a.798.798 0 01.064.796 7.448 7.448 0 00-.198.478.798.798 0 01-.608.517l-.55.092a1.875 1.875 0 00-1.566 1.849v.344c0 .916.663 1.699 1.567 1.85l.549.091c.281.047.508.25.608.517.06.162.127.321.198.478a.798.798 0 01-.064.796l-.324.453a1.875 1.875 0 00.2 2.416l.243.243c.648.648 1.67.733 2.416.2l.453-.324a.798.798 0 01.796-.064c.157.071.316.137.478.198.267.1.47.327.517.608l.092.55c.15.903.932 1.566 1.849 1.566h.344c.916 0 1.699-.663 1.85-1.567l.091-.549a.798.798 0 01.517-.608 7.52 7.52 0 00.478-.198.798.798 0 01.796.064l.453.324a1.875 1.875 0 002.416-.2l.243-.243c.648-.648.733-1.67.2-2.416l-.324-.453a.798.798 0 01-.064-.796c.071-.157.137-.316.198-.478.1-.267.327-.47.608-.517l.55-.091a1.875 1.875 0 001.566-1.85v-.344c0-.916-.663-1.699-1.567-1.85l-.549-.091a.798.798 0 01-.608-.517 7.507 7.507 0 00-.198-.478.798.798 0 01.064-.796l.324-.453a1.875 1.875 0 00-.2-2.416l-.243-.243a1.875 1.875 0 00-2.416-.2l-.453.324a.798.798 0 01-.796.064 7.462 7.462 0 00-.478-.198.798.798 0 01-.608-.517l-.091-.55a1.875 1.875 0 00-1.85-1.566h-.344zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clip-rule="evenodd" />
                             </svg>
@@ -184,11 +186,11 @@
                             }
                         </div>
 
-                        <button type="button" class="dock-icon" onclick="toggleMenu('laboratorio')" title="Laboratorio">
+                        <button type="button" class="dock-icon" onclick="toggleMenu('laboratorio', event)" title="Laboratorio">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10.5 3.798v5.02a3 3 0 01-.879 2.121l-2.377 2.377a9.845 9.845 0 015.091 1.013 8.315 8.315 0 005.713.636l.285-.071-3.954-3.955a3 3 0 01-.879-2.121v-5.02a23.614 23.614 0 01-3 0zm4.5.138a.75.75 0 00.093-1.495A24.837 24.837 0 0012 2.25a25.048 25.048 0 00-3.093.191A.75.75 0 009 3.936v4.882a1.5 1.5 0 01-.44 1.06l-6.293 6.291c-1.62 1.621-.903 4.475 1.471 4.88 2.686.46 5.447.698 8.262.698 2.816 0 5.576-.239 8.262-.697 2.373-.406 3.092-3.26 1.47-4.881L15.44 9.879A1.5 1.5 0 0115 8.818V4.936z" clip-rule="evenodd" />
                             </svg>
-                            <span>Laboratorio</span>
+                            <span>Lab</span>
                         </button>
                     </div>
                 }
@@ -203,7 +205,7 @@
                             <a asp-controller="CorteCaja" asp-action="CrearFactura">+ Nueva factura</a>
                         </div>
 
-                        <button type="button" class="dock-icon" onclick="toggleMenu('caja')" title="Corte de Caja">
+                        <button type="button" class="dock-icon" onclick="toggleMenu('caja', event)" title="Corte de Caja">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M2.273 5.625A4.483 4.483 0 015.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 3H5.25a3 3 0 00-2.977 2.625zM2.273 8.625A4.483 4.483 0 015.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 6H5.25a3 3 0 00-2.977 2.625zM5.25 9a3 3 0 00-3 3v6a3 3 0 003 3h13.5a3 3 0 003-3v-6a3 3 0 00-3-3H5.25zm.75 6.75a.75.75 0 000 1.5h7.5a.75.75 0 000-1.5H6zm0-3a.75.75 0 000 1.5h3a.75.75 0 000-1.5H6z" />
                             </svg>
@@ -224,7 +226,7 @@
                             <a asp-controller="Admin" asp-action="Auditoria">Bitácora</a>
                         </div>
 
-                        <button type="button" class="dock-icon" onclick="toggleMenu('admin')" title="Administración">
+                        <button type="button" class="dock-icon" onclick="toggleMenu('admin', event)" title="Administración">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                                 <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clip-rule="evenodd" />
                             </svg>
@@ -234,6 +236,9 @@
                 }
             </div>
         </div>
+
+        <!-- PANEL FLOTANTE MÓVIL -->
+        <div id="dock-mobile-panel" class="dock-mobile-panel"></div>
     }
 
     <!-- SCRIPTS -->
@@ -244,20 +249,21 @@
 
     <!-- ESTILOS DEL LAYOUT Y DOCK -->
     <style>
-        html, body {
+        html,
+        body {
             width: 100%;
             min-height: 100%;
             overflow-x: hidden;
             background: #eef4fb;
         }
 
-            body.layout-auth {
-                padding-bottom: 115px;
-            }
+        body.layout-auth {
+            padding-bottom: 120px;
+        }
 
-            body.layout-public {
-                padding-bottom: 0;
-            }
+        body.layout-public {
+            padding-bottom: 0;
+        }
 
         .app-shell {
             width: 100%;
@@ -317,7 +323,10 @@
             border: 1px solid rgba(212, 228, 218, .9);
             border-radius: 28px;
             padding: 10px 14px;
-            box-shadow: 0 10px 32px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.9);
+            box-shadow:
+                0 10px 32px rgba(0,0,0,.14),
+                0 2px 8px rgba(0,0,0,.06),
+                inset 0 1px 0 rgba(255,255,255,.9);
             overflow: visible;
         }
 
@@ -347,36 +356,36 @@
             font-family: inherit;
         }
 
-            .dock-icon svg {
-                width: 34px;
-                height: 34px;
-                color: #1a5c38;
-                background: linear-gradient(145deg, #e8f5ee, #d1fae5);
-                border-radius: 12px;
-                padding: 7px;
-                box-shadow: 0 2px 8px rgba(26,92,56,.18);
-                transition: all .2s ease;
-            }
+        .dock-icon svg {
+            width: 34px;
+            height: 34px;
+            color: #1a5c38;
+            background: linear-gradient(145deg, #e8f5ee, #d1fae5);
+            border-radius: 12px;
+            padding: 7px;
+            box-shadow: 0 2px 8px rgba(26,92,56,.18);
+            transition: all .2s ease;
+        }
 
-            .dock-icon span {
-                font-size: .64rem;
-                font-weight: 600;
-                color: #1a5c38;
-                letter-spacing: .2px;
-                white-space: nowrap;
-            }
+        .dock-icon span {
+            font-size: .64rem;
+            font-weight: 600;
+            color: #1a5c38;
+            letter-spacing: .2px;
+            white-space: nowrap;
+        }
 
-            .dock-icon:hover {
-                transform: translateY(-3px);
-                background: rgba(232,245,238,.75);
-            }
+        .dock-icon:hover {
+            transform: translateY(-3px);
+            background: rgba(232,245,238,.75);
+        }
 
-                .dock-icon:hover svg,
-                .dock-item.activo .dock-icon svg {
-                    background: linear-gradient(145deg, #1a5c38, #2d8653);
-                    color: #fff;
-                    box-shadow: 0 4px 14px rgba(26,92,56,.32);
-                }
+        .dock-icon:hover svg,
+        .dock-item.activo .dock-icon svg {
+            background: linear-gradient(145deg, #1a5c38, #2d8653);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(26,92,56,.32);
+        }
 
         .dock-item.activo .dock-icon {
             background: rgba(232,245,238,.85);
@@ -402,18 +411,18 @@
             z-index: 10000;
         }
 
-            .dock-menu::after {
-                content: '';
-                position: absolute;
-                bottom: -6px;
-                left: 50%;
-                width: 12px;
-                height: 12px;
-                background: rgba(255,255,255,.98);
-                border-right: 1px solid rgba(212,228,218,.9);
-                border-bottom: 1px solid rgba(212,228,218,.9);
-                transform: translateX(-50%) rotate(45deg);
-            }
+        .dock-menu::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            background: rgba(255,255,255,.98);
+            border-right: 1px solid rgba(212,228,218,.9);
+            border-bottom: 1px solid rgba(212,228,218,.9);
+            transform: translateX(-50%) rotate(45deg);
+        }
 
         .dock-item.activo .dock-menu {
             opacity: 1;
@@ -451,7 +460,8 @@
             transform: rotate(45deg);
         }
 
-        .dock-menu a {
+        .dock-menu a,
+        .dock-mobile-panel a {
             display: flex;
             align-items: center;
             min-height: 38px;
@@ -465,11 +475,12 @@
             white-space: nowrap;
         }
 
-            .dock-menu a:hover {
-                background: #e8f5ee;
-                color: #1a5c38;
-                transform: translateX(2px);
-            }
+        .dock-menu a:hover,
+        .dock-mobile-panel a:hover {
+            background: #e8f5ee;
+            color: #1a5c38;
+            transform: translateX(2px);
+        }
 
         .dock-menu-divider {
             height: 1px;
@@ -477,20 +488,25 @@
             margin: 4px 6px;
         }
 
+        .dock-mobile-panel {
+            display: none;
+        }
+
         @@media (max-width: 768px) {
             body.layout-auth {
-                padding-bottom: 105px;
+                padding-bottom: calc(112px + env(safe-area-inset-bottom));
             }
 
             .navbar {
+                min-height: 58px;
                 padding-left: 14px !important;
                 padding-right: 14px !important;
             }
 
-                .navbar .btn-outline-danger {
-                    padding: 5px 10px !important;
-                    font-size: .78rem;
-                }
+            .navbar .btn-outline-danger {
+                padding: 5px 10px !important;
+                font-size: .78rem;
+            }
 
             .brand-logo {
                 width: 46px;
@@ -502,13 +518,13 @@
             }
 
             .app-main {
-                padding-bottom: 16px;
+                padding-bottom: 18px;
             }
 
             #dock-wrapper {
-                bottom: 10px;
                 left: 0;
                 right: 0;
+                bottom: calc(10px + env(safe-area-inset-bottom));
                 transform: none;
                 width: 100%;
                 max-width: 100%;
@@ -522,17 +538,17 @@
                 max-width: 430px;
                 justify-content: flex-start;
                 gap: 6px;
-                padding: 8px 8px;
+                padding: 8px;
                 border-radius: 24px;
                 overflow-x: auto;
-                overflow-y: visible;
+                overflow-y: hidden;
                 scrollbar-width: none;
                 -webkit-overflow-scrolling: touch;
             }
 
-                #dock::-webkit-scrollbar {
-                    display: none;
-                }
+            #dock::-webkit-scrollbar {
+                display: none;
+            }
 
             .dock-icon {
                 width: 58px;
@@ -541,48 +557,72 @@
                 border-radius: 16px;
             }
 
-                .dock-icon svg {
-                    width: 32px;
-                    height: 32px;
-                    padding: 7px;
-                }
+            .dock-icon svg {
+                width: 32px;
+                height: 32px;
+                padding: 7px;
+            }
 
-                .dock-icon span {
-                    font-size: .58rem;
-                    max-width: 58px;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
+            .dock-icon span {
+                font-size: .56rem;
+                max-width: 58px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
 
-                .dock-icon:hover,
-                .dock-item.activo .dock-icon {
-                    transform: none;
-                }
+            .dock-icon:hover,
+            .dock-item.activo .dock-icon {
+                transform: none;
+            }
 
+            /* En móvil se ocultan los menús originales para evitar que el dock los corte */
             .dock-menu {
+                display: none !important;
+            }
+
+            /* Este panel móvil sí flota fuera del dock */
+            .dock-mobile-panel {
                 position: fixed;
-                left: 12px !important;
-                right: 12px !important;
-                bottom: 92px;
-                width: auto;
-                min-width: unset;
+                left: 12px;
+                right: 12px;
+                bottom: calc(92px + env(safe-area-inset-bottom));
+                z-index: 20000;
+                display: block;
+                background: rgba(255,255,255,.98);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(212,228,218,.95);
+                border-radius: 22px;
+                box-shadow: 0 18px 45px rgba(15,23,42,.20), 0 4px 14px rgba(15,23,42,.10);
+                padding: 10px;
                 max-height: 55vh;
                 overflow-y: auto;
-                border-radius: 20px;
-                transform: translateY(8px) scale(.98) !important;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                transform: translateY(12px) scale(.98);
+                transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
             }
 
-            .dock-item.activo .dock-menu {
-                transform: translateY(0) scale(1) !important;
+            .dock-mobile-panel.show {
+                opacity: 1;
+                visibility: visible;
+                pointer-events: all;
+                transform: translateY(0) scale(1);
             }
 
-            .dock-menu::after {
-                display: none;
-            }
-
-            .dock-menu a {
-                min-height: 42px;
+            .dock-mobile-panel a {
+                min-height: 44px;
                 font-size: .9rem;
+                border-radius: 14px;
+                white-space: normal;
+            }
+
+            .dock-mobile-panel .dock-menu-divider {
+                height: 1px;
+                background: #e8f0ec;
+                margin: 6px;
             }
         }
 
@@ -600,22 +640,75 @@
                 width: 55px;
             }
 
-                .dock-icon span {
-                    font-size: .55rem;
-                    max-width: 54px;
-                }
+            .dock-icon span {
+                font-size: .55rem;
+                max-width: 54px;
+            }
         }
     </style>
 
     <script>
-        function toggleMenu(modulo) {
+        const dockMobileQuery = window.matchMedia('(max-width: 768px)');
+
+        function closeDockMenus() {
+            document.querySelectorAll('.dock-item')
+                .forEach(i => i.classList.remove('activo'));
+
+            const mobilePanel = document.getElementById('dock-mobile-panel');
+
+            if (mobilePanel) {
+                mobilePanel.classList.remove('show');
+                mobilePanel.removeAttribute('data-modulo');
+            }
+        }
+
+        function toggleMenu(modulo, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+
             const item = document.querySelector(`[data-modulo="${modulo}"]`);
+
             if (!item) return;
 
             const estaActivo = item.classList.contains('activo');
 
-            document.querySelectorAll('.dock-item')
-                .forEach(i => i.classList.remove('activo'));
+            /*
+                En teléfono se usa un panel flotante independiente.
+                Esto evita que el dock con scroll horizontal recorte las opciones.
+            */
+            if (dockMobileQuery.matches) {
+                const sourceMenu = item.querySelector('.dock-menu');
+                const mobilePanel = document.getElementById('dock-mobile-panel');
+
+                if (!sourceMenu || !mobilePanel) return;
+
+                const mismoMenuAbierto =
+                    mobilePanel.classList.contains('show') &&
+                    mobilePanel.getAttribute('data-modulo') === modulo;
+
+                closeDockMenus();
+
+                if (!mismoMenuAbierto) {
+                    item.classList.add('activo');
+                    mobilePanel.innerHTML = sourceMenu.innerHTML;
+                    mobilePanel.setAttribute('data-modulo', modulo);
+                    mobilePanel.classList.add('show');
+
+                    mobilePanel.querySelectorAll('a').forEach(function (link) {
+                        link.addEventListener('click', function () {
+                            closeDockMenus();
+                        });
+                    });
+                }
+
+                return;
+            }
+
+            /*
+                En escritorio se usa el menú original sobre cada ícono.
+            */
+            closeDockMenus();
 
             if (!estaActivo) {
                 item.classList.add('activo');
@@ -623,28 +716,21 @@
         }
 
         document.addEventListener('click', function (e) {
-            if (!e.target.closest('#dock-wrapper')) {
-                document.querySelectorAll('.dock-item')
-                    .forEach(i => i.classList.remove('activo'));
+            if (!e.target.closest('#dock-wrapper') && !e.target.closest('#dock-mobile-panel')) {
+                closeDockMenus();
             }
         });
 
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
-                document.querySelectorAll('.dock-item')
-                    .forEach(i => i.classList.remove('activo'));
+                closeDockMenus();
             }
         });
 
-        document.querySelectorAll('.dock-menu a').forEach(function (link) {
-            link.addEventListener('click', function () {
-                document.querySelectorAll('.dock-item')
-                    .forEach(i => i.classList.remove('activo'));
-            });
+        window.addEventListener('resize', function () {
+            closeDockMenus();
         });
     </script>
-
-    <!-- AGREGADO TODO-->
 
 </body>
 </html>
