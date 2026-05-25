@@ -84,8 +84,8 @@
     </header>
 
     <!-- CONTENIDO PRINCIPAL -->
-    <div class="container mt-4">
-        <main role="main" class="pb-3">
+    <div class="app-shell">
+        <main role="main" class="app-main">
             @RenderBody()
         </main>
     </div>
@@ -244,12 +244,35 @@
 
     <!-- ESTILOS DEL LAYOUT Y DOCK -->
     <style>
-        body.layout-auth {
-            padding-bottom: 110px;
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            overflow-x: hidden;
+            background: #eef4fb;
         }
 
-        body.layout-public {
-            padding-bottom: 0;
+            body.layout-auth {
+                padding-bottom: 115px;
+            }
+
+            body.layout-public {
+                padding-bottom: 0;
+            }
+
+        .app-shell {
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 24px 18px 0;
+        }
+
+        .app-main {
+            width: 100%;
+            padding-bottom: 24px;
+        }
+
+        .navbar {
+            min-height: 64px;
         }
 
         .brand-logo-box {
@@ -270,34 +293,33 @@
 
         #dock-wrapper {
             position: fixed;
-            bottom: 16px;
             left: 50%;
+            bottom: 16px;
             transform: translateX(-50%);
             z-index: 9999;
+            width: auto;
+            max-width: calc(100vw - 24px);
             display: flex;
             justify-content: center;
-            max-width: calc(100vw - 20px);
             overflow: visible;
+            pointer-events: none;
         }
 
         #dock {
+            pointer-events: auto;
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: rgba(255, 255, 255, .90);
+            justify-content: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, .92);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(212, 228, 218, .85);
-            border-radius: 24px;
-            padding: 10px 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,.15), 0 2px 8px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
+            border: 1px solid rgba(212, 228, 218, .9);
+            border-radius: 28px;
+            padding: 10px 14px;
+            box-shadow: 0 10px 32px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.9);
             overflow: visible;
-            scrollbar-width: none;
         }
-
-            #dock::-webkit-scrollbar {
-                display: none;
-            }
 
         .dock-item {
             position: relative;
@@ -308,7 +330,7 @@
         }
 
         .dock-icon {
-            width: 74px;
+            width: 72px;
             min-height: 58px;
             display: flex;
             flex-direction: column;
@@ -318,7 +340,7 @@
             cursor: pointer;
             transition: background .18s ease, transform .18s ease;
             padding: 7px 8px;
-            border-radius: 16px;
+            border-radius: 18px;
             user-select: none;
             border: 0;
             background: transparent;
@@ -330,9 +352,9 @@
                 height: 34px;
                 color: #1a5c38;
                 background: linear-gradient(145deg, #e8f5ee, #d1fae5);
-                border-radius: 10px;
-                padding: 6px;
-                box-shadow: 0 2px 8px rgba(26,92,56,.2);
+                border-radius: 12px;
+                padding: 7px;
+                box-shadow: 0 2px 8px rgba(26,92,56,.18);
                 transition: all .2s ease;
             }
 
@@ -340,7 +362,7 @@
                 font-size: .64rem;
                 font-weight: 600;
                 color: #1a5c38;
-                letter-spacing: .3px;
+                letter-spacing: .2px;
                 white-space: nowrap;
             }
 
@@ -349,22 +371,16 @@
                 background: rgba(232,245,238,.75);
             }
 
-                .dock-icon:hover svg {
+                .dock-icon:hover svg,
+                .dock-item.activo .dock-icon svg {
                     background: linear-gradient(145deg, #1a5c38, #2d8653);
                     color: #fff;
                     box-shadow: 0 4px 14px rgba(26,92,56,.32);
                 }
 
         .dock-item.activo .dock-icon {
-            transform: none;
             background: rgba(232,245,238,.85);
         }
-
-            .dock-item.activo .dock-icon svg {
-                background: linear-gradient(145deg, #1a5c38, #2d8653);
-                color: #fff;
-                box-shadow: 0 4px 14px rgba(26,92,56,.32);
-            }
 
         .dock-menu {
             position: absolute;
@@ -375,7 +391,7 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(212,228,218,.9);
-            border-radius: 16px;
+            border-radius: 18px;
             box-shadow: 0 18px 45px rgba(15,23,42,.18), 0 4px 14px rgba(15,23,42,.10);
             padding: 8px;
             min-width: 230px;
@@ -438,10 +454,10 @@
         .dock-menu a {
             display: flex;
             align-items: center;
-            min-height: 36px;
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: .84rem;
+            min-height: 38px;
+            padding: 9px 14px;
+            border-radius: 12px;
+            font-size: .86rem;
             font-weight: 500;
             color: #1a2e22;
             text-decoration: none;
@@ -462,27 +478,81 @@
         }
 
         @@media (max-width: 768px) {
-            .container {
+            body.layout-auth {
+                padding-bottom: 105px;
+            }
+
+            .navbar {
+                padding-left: 14px !important;
+                padding-right: 14px !important;
+            }
+
+                .navbar .btn-outline-danger {
+                    padding: 5px 10px !important;
+                    font-size: .78rem;
+                }
+
+            .brand-logo {
+                width: 46px;
+            }
+
+            .app-shell {
                 max-width: 100%;
+                padding: 14px 10px 0;
+            }
+
+            .app-main {
+                padding-bottom: 16px;
             }
 
             #dock-wrapper {
                 bottom: 10px;
-                width: calc(100vw - 12px);
+                left: 0;
+                right: 0;
+                transform: none;
+                width: 100%;
+                max-width: 100%;
+                padding: 0 8px;
                 justify-content: center;
+                overflow: visible;
             }
 
             #dock {
-                max-width: 100%;
+                width: 100%;
+                max-width: 430px;
                 justify-content: flex-start;
-                padding: 8px 10px;
+                gap: 6px;
+                padding: 8px 8px;
+                border-radius: 24px;
                 overflow-x: auto;
                 overflow-y: visible;
+                scrollbar-width: none;
+                -webkit-overflow-scrolling: touch;
             }
 
+                #dock::-webkit-scrollbar {
+                    display: none;
+                }
+
             .dock-icon {
-                width: 68px;
+                width: 58px;
+                min-height: 56px;
+                padding: 6px 4px;
+                border-radius: 16px;
             }
+
+                .dock-icon svg {
+                    width: 32px;
+                    height: 32px;
+                    padding: 7px;
+                }
+
+                .dock-icon span {
+                    font-size: .58rem;
+                    max-width: 58px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
 
                 .dock-icon:hover,
                 .dock-item.activo .dock-icon {
@@ -494,8 +564,11 @@
                 left: 12px !important;
                 right: 12px !important;
                 bottom: 92px;
-                min-width: unset;
                 width: auto;
+                min-width: unset;
+                max-height: 55vh;
+                overflow-y: auto;
+                border-radius: 20px;
                 transform: translateY(8px) scale(.98) !important;
             }
 
@@ -506,6 +579,31 @@
             .dock-menu::after {
                 display: none;
             }
+
+            .dock-menu a {
+                min-height: 42px;
+                font-size: .9rem;
+            }
+        }
+
+        @@media (max-width: 390px) {
+            .app-shell {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+
+            #dock {
+                max-width: 100%;
+            }
+
+            .dock-icon {
+                width: 55px;
+            }
+
+                .dock-icon span {
+                    font-size: .55rem;
+                    max-width: 54px;
+                }
         }
     </style>
 
